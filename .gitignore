@@ -9,15 +9,18 @@ conf/local/**
 # ignore potentially sensitive credentials files
 conf/**/*credentials*
 
-# ignore everything in the following folders
-data/**
+# 1. Ignore everything inside the data folder
+data/*
 
-# 2. Re-allow the specific scripts
-!data/audiogram_generator.py
-!data/test_generator.py
+# 2. Allow Git to enter the "01_raw" sub-folder
+!data/01_raw/
 
-# except their sub-folders
-!data/**/
+# 3. Ignore everything inside "01_raw" (so you don't track other data files)
+data/01_raw/*
+
+# 4. Finally, keep your specific scripts
+!data/01_raw/audiogram_generator.py
+!data/01_raw/test_generator.py
 
 # also keep all .gitkeep files
 !.gitkeep
