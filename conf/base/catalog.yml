@@ -1,0 +1,56 @@
+# Raw data
+raw_audiograms:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/tonal_exams.csv
+
+# Cleaned data
+cleaned_audiograms:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/cleaned_audiograms.csv
+
+# Train/Test split
+X_train:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/X_train.csv
+
+X_test:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/X_test.csv
+
+y_train:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_train.csv
+
+y_test:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_test.csv
+
+# TensorFlow Model
+trained_model:
+  type: tensorflow.TensorFlowModelDataset
+  filepath: data/06_models/audiogram_model.keras
+  save_args:
+    save_format: keras
+
+# Metrics
+model_metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/metrics.json
+```
+
+---
+
+## Updated `requirements.txt`
+```
+kedro>=0.19.0
+kedro-datasets[pandas,tensorflow]>=2.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+tensorflow>=2.15.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pytest>=7.4.0
+httpx>=0.24.0
+pydantic>=2.0.0
+matplotlib>=3.7.0
