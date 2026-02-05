@@ -12,6 +12,10 @@ conf/**/*credentials*
 # ignore everything in the following folders
 data/**
 
+# 2. Re-allow the specific scripts
+!data/audiogram_generator.py
+!data/test_generator.py
+
 # except their sub-folders
 !data/**/
 
