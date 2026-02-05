@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Loading datas
-datas = pd.read_csv('examens_tonaux.csv')
+datas = pd.read_csv('tonal_exams.csv')
 
 # Create x axis
 init_freq = 125
