@@ -10,10 +10,12 @@ def register_pipelines() -> Dict[str, Pipeline]:
     
     data_processing_pipeline = data_processing.create_pipeline()
     training_pipeline = training.create_pipeline()
+    inference_pipeline = inference.create_pipeline()
     
     return {
         "data_processing": data_processing_pipeline,
         "training": training_pipeline,
+        "inference": inference_pipeline,
         "train": data_processing_pipeline + training_pipeline,
         "__default__": data_processing_pipeline + training_pipeline,
     }

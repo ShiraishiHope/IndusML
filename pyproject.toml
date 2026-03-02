@@ -26,6 +26,11 @@ audio-prediction = "audio_prediction.__main__:main"
 [tool.setuptools.dynamic.version]
 attr = "audio_prediction.__version__"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning:keras",
+]
+
 [tool.setuptools.packages.find]
 where = [
     "src",
