@@ -7,6 +7,8 @@ import tensorflow as tf
 from tensorflow.keras import layers, regularizers
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from typing import Dict, Any, Tuple
+import mlflow
+import mlflow.tensorflow
 
 
 def create_model(input_shape, units=128, activation='relu', l2_value=0.01, dropout_rate=None, learning_rate=1e-3):
@@ -102,29 +104,58 @@ def train_model(
     
     # Créer le modèle
     input_shape = (X_train_cnn.shape[1], 1)  # (7, 1)
-    model = create_model(
-        input_shape=input_shape,
-        units=units,
-        dropout_rate=dropout_rate,
-        learning_rate=learning_rate
-    )
-    
-    # Callbacks
-    early_stopping = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss',
-        patience=10,
-        restore_best_weights=True
-    )
-    
-    # Entraînement
-    model.fit(
-        X_train_cnn, y_train_cnn,
-        epochs=epochs,
-        batch_size=batch_size,
-        callbacks=[early_stopping],
-        verbose=1
-    )
-    
+    with mlflow.start_run(nested=True) as run:
+        # Log des hyperparamètres
+        mlflow.log_params({
+            "units": units,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "learning_rate": learning_rate,
+            "dropout_rate": dropout_rate,
+            "input_shape": str(input_shape),
+        })
+
+        model = create_model(
+            input_shape=input_shape,
+            units=units,
+            dropout_rate=dropout_rate,
+            learning_rate=learning_rate
+        )
+
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss',
+            patience=10,
+            restore_best_weights=True
+        )
+
+        history = model.fit(
+            X_train_cnn, y_train_cnn,
+            epochs=epochs,
+            batch_size=batch_size,
+            validation_split=0.1,
+            callbacks=[early_stopping],
+            verbose=1
+        )
+
+        # Log des métriques d'entraînement
+        for epoch_idx, (loss, mae) in enumerate(
+            zip(history.history['loss'], history.history['mae'])
+        ):
+            mlflow.log_metric("train_loss", loss, step=epoch_idx)
+            mlflow.log_metric("train_mae", mae, step=epoch_idx)
+
+        if 'val_loss' in history.history:
+            for epoch_idx, (val_loss, val_mae) in enumerate(
+                zip(history.history['val_loss'], history.history['val_mae'])
+            ):
+                mlflow.log_metric("val_loss", val_loss, step=epoch_idx)
+                mlflow.log_metric("val_mae", val_mae, step=epoch_idx)
+
+        # Log du modèle
+        mlflow.tensorflow.log_model(model, "model")
+
+        print(f"Run ID: {run.info.run_id}")
+
     return model
 
 
@@ -159,6 +190,20 @@ def evaluate_model(
         "per_frequency": per_frequency_metrics
     }
     
+    # Log des métriques d'évaluation dans MLflow
+    mlflow.log_metrics({
+        "test_mse": float(mse),
+        "test_mae": float(mae),
+        "test_r2": float(r2),
+    })
+
+    # Log des métriques par fréquence
+    for col, freq_metrics in per_frequency_metrics.items():
+        freq_label = col.replace("after_exam_", "").replace("_Hz", "")
+        mlflow.log_metric(f"mse_{freq_label}", freq_metrics["mse"])
+        mlflow.log_metric(f"mae_{freq_label}", freq_metrics["mae"])
+        mlflow.log_metric(f"r2_{freq_label}", freq_metrics["r2"])
+
     print(f"Model Performance - MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
-    
+
     return metrics
