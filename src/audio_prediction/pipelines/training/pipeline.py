@@ -10,7 +10,7 @@ def create_pipeline(**kwargs) -> Pipeline:
         node(
             func=train_model,
             inputs=[
-                "X_train", "y_train", "X_test", "y_test",
+                "X_train", "y_train",
                 "params:training.units",
                 "params:training.epochs",
                 "params:training.batch_size",

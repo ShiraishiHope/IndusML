@@ -77,8 +77,6 @@ def prepare_data_for_cnn(X: pd.DataFrame, y: pd.DataFrame) -> Tuple[np.ndarray, 
 def train_model(
     X_train: pd.DataFrame,
     y_train: pd.DataFrame,
-    X_test: pd.DataFrame,
-    y_test: pd.DataFrame,
     units: int = 128,
     epochs: int = 50,
     batch_size: int = 32,
@@ -90,7 +88,6 @@ def train_model(
     
     Args:
         X_train, y_train: Données d'entraînement
-        X_test, y_test: Données de validation
         units: Neurones dans la couche dense
         epochs: Nombre d'époques
         batch_size: Taille du batch
@@ -102,7 +99,6 @@ def train_model(
     """
     # Préparer les données
     X_train_cnn, y_train_cnn = prepare_data_for_cnn(X_train, y_train)
-    X_test_cnn, y_test_cnn = prepare_data_for_cnn(X_test, y_test)
     
     # Créer le modèle
     input_shape = (X_train_cnn.shape[1], 1)  # (7, 1)
@@ -123,7 +119,6 @@ def train_model(
     # Entraînement
     model.fit(
         X_train_cnn, y_train_cnn,
-        validation_data=(X_test_cnn, y_test_cnn),
         epochs=epochs,
         batch_size=batch_size,
         callbacks=[early_stopping],
