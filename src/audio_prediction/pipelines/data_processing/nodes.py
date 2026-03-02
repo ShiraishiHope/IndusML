@@ -45,26 +45,22 @@ def validate_data(df: pd.DataFrame, input_columns: List[str], output_columns: Li
             if pd.isna(value):
                 row_issues.append(f"{col}: valeur manquante (NaN)")
                 invalid_indices.add(idx)
-            # Vérifier si c'est un string (lettre)
-            elif isinstance(value, str):
-                row_issues.append(f"{col}: valeur non numérique '{value}'")
-                invalid_indices.add(idx)
             else:
-                # Convertir et vérifier les limites
+                # Try converting to float first (handles string numbers like "50")
                 try:
                     num_val = float(value)
                     if num_val < -20 or num_val > 150:
                         row_issues.append(f"{col}: valeur hors limites ({num_val})")
                         invalid_indices.add(idx)
                 except (ValueError, TypeError):
-                    row_issues.append(f"{col}: conversion impossible")
+                    row_issues.append(f"{col}: valeur non numérique '{value}'")
                     invalid_indices.add(idx)
-        
-        if row_issues:
-            validation_report["invalid_rows"].append({
-                "index": int(idx),
-                "issues": row_issues
-            })
+                
+                if row_issues:
+                    validation_report["invalid_rows"].append({
+                        "index": int(idx),
+                        "issues": row_issues
+                    })
     
     # Filtrer les données valides
     valid_mask = ~df.index.isin(invalid_indices)
