@@ -56,11 +56,14 @@ def test_inference_pipeline_runs(trained_model_fixture):
         "trained_model": MemoryDataset(trained_model_fixture),
         "params:data_processing.input_columns": MemoryDataset(INPUT_COLUMNS),
         "params:data_processing.output_columns": MemoryDataset(OUTPUT_COLUMNS),
+        "validated_input": MemoryDataset(),
+        "validation_errors": MemoryDataset(),
+        "predictions": MemoryDataset(),
     })
     
     runner = SequentialRunner()
-    result = runner.run(pipeline, catalog)
+    runner.run(pipeline, catalog)
     
-    assert "predictions" in result
-    assert len(result["predictions"]) == 3
-    assert list(result["predictions"].columns) == OUTPUT_COLUMNS
+    predictions = catalog.load("predictions")
+    assert len(predictions) == 3
+    assert list(predictions.columns) == OUTPUT_COLUMNS

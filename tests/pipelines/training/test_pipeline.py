@@ -59,10 +59,17 @@ def test_training_pipeline_runs(sample_data):
         "params:training.batch_size": MemoryDataset(32),
         "params:training.learning_rate": MemoryDataset(0.001),
         "params:training.dropout_rate": MemoryDataset(0.2),
+        "trained_model": MemoryDataset(),
+        "model_metrics": MemoryDataset(),
     })
     
     runner = SequentialRunner()
-    result = runner.run(pipeline, catalog)
+    runner.run(pipeline, catalog)
     
-    assert "trained_model" in result or catalog.load("trained_model") is not None
-    assert "model_metrics" in result or catalog.load("model_metrics") is not None
+    model = catalog.load("trained_model")
+    metrics = catalog.load("model_metrics")
+    
+    assert model is not None
+    assert hasattr(model, 'predict')
+    assert "overall" in metrics
+    assert "mse" in metrics["overall"]
