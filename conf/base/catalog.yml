@@ -67,3 +67,7 @@ features:
 targets:
   type: pandas.CSVDataset
   filepath: data/03_primary/targets.csv
+
+best_hyperparameters:
+  type: json.JSONDataset
+  filepath: data/06_models/best_hyperparameters.json

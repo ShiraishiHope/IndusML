@@ -13,6 +13,7 @@ from mlflow.models.signature import infer_signature
 import platform
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,3 +194,4 @@ def evaluate_model(
 
     print(f"Model Performance - MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     return metrics
+
