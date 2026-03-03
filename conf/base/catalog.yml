@@ -106,6 +106,7 @@ X_vocal_full:
 y_vocal_full:
   type: pickle.PickleDataset
   filepath: data/05_model_input/y_vocal_full.pkl
+  
 # Modèle TensorFlow
 vocal_model:
   type: tensorflow.TensorFlowModelDataset
