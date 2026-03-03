@@ -4,7 +4,7 @@ from kedro.framework.hooks import hook_impl
 
 class MLflowHook:
     @hook_impl
-    def before_pipeline_run(self, run_params, pipeline, catalog):git
+    def before_pipeline_run(self, run_params, pipeline, catalog):
         mlflow.set_experiment("audio_prediction")
         mlflow.start_run()
         mlflow.keras.autolog()

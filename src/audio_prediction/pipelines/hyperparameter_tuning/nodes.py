@@ -1,6 +1,7 @@
 """
 Nodes for Optuna hyperparameter optimization.
 """
+
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -51,31 +52,33 @@ def optimize_hyperparameters(
             search_space.get("batch_size_choices", [16, 32, 64]),
         )
 
-        model = create_model(
-            input_shape=input_shape,
-            units=units,
-            dropout_rate=dropout_rate,
-            learning_rate=learning_rate,
-        )
-
-        early_stopping = tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss", patience=5, restore_best_weights=True
-        )
-
-        history = model.fit(
-            X_train_cnn,
-            y_train_cnn,
-            epochs=50,
-            batch_size=batch_size,
-            validation_split=0.1,
-            callbacks=[early_stopping],
-            verbose=0,
-        )
-
-        best_val_loss = min(history.history["val_loss"])
-
+        # Wrap model creation, training, AND manual logging
+        # inside the nested run so autologging targets THIS run
         if mlflow.active_run():
             with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
+                model = create_model(
+                    input_shape=input_shape,
+                    units=units,
+                    dropout_rate=dropout_rate,
+                    learning_rate=learning_rate,
+                )
+
+                early_stopping = tf.keras.callbacks.EarlyStopping(
+                    monitor="val_loss", patience=5, restore_best_weights=True
+                )
+
+                history = model.fit(
+                    X_train_cnn,
+                    y_train_cnn,
+                    epochs=50,
+                    batch_size=batch_size,
+                    validation_split=0.1,
+                    callbacks=[early_stopping],
+                    verbose=0,
+                )
+
+                best_val_loss = min(history.history["val_loss"])
+
                 mlflow.log_params({
                     "units": units,
                     "learning_rate": learning_rate,
@@ -83,6 +86,30 @@ def optimize_hyperparameters(
                     "batch_size": batch_size,
                 })
                 mlflow.log_metric("best_val_loss", best_val_loss)
+        else:
+            # Fallback if no active MLflow run
+            model = create_model(
+                input_shape=input_shape,
+                units=units,
+                dropout_rate=dropout_rate,
+                learning_rate=learning_rate,
+            )
+
+            early_stopping = tf.keras.callbacks.EarlyStopping(
+                monitor="val_loss", patience=5, restore_best_weights=True
+            )
+
+            history = model.fit(
+                X_train_cnn,
+                y_train_cnn,
+                epochs=50,
+                batch_size=batch_size,
+                validation_split=0.1,
+                callbacks=[early_stopping],
+                verbose=0,
+            )
+
+            best_val_loss = min(history.history["val_loss"])
 
         return best_val_loss
 
