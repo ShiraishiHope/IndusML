@@ -97,7 +97,8 @@ def train_model(
 def evaluate_model(
     model: tf.keras.Model,
     X_test: np.ndarray,
-    y_test: np.ndarray
+    y_test: np.ndarray,
+    error_margin: float = 5.0
 ) -> Dict[str, Any]:
     
     if len(X_test.shape) == 2:
@@ -107,6 +108,16 @@ def evaluate_model(
     
     mse = mean_squared_error(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
+
+    # ---- Accuracy based on absolute error margin ----
+    abs_errors = np.abs(y_test - y_pred)
+    within_margin = abs_errors <= error_margin
+    overall_accuracy = float(np.mean(within_margin))
     
-    print(f"Évaluation Vocale Terminée - MAE: {mae:.2f}% de précision sur la courbe")
-    return {"test_mse": float(mse), "test_mae": float(mae)}
+    print(f"Évaluation Vocale Terminée - Accuracy (±{error_margin}): {overall_accuracy:.2%}, MAE: {mae:.2f}")
+    return {
+        "test_accuracy": overall_accuracy,
+        "error_margin": error_margin,
+        "test_mse": float(mse),
+        "test_mae": float(mae),
+    }

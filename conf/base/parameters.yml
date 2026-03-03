@@ -24,6 +24,7 @@ training:
   learning_rate: 0.001
   units: 128
   dropout_rate: 0.2
+  error_margin: 5.0
 
 optuna:
   n_trials: 30

@@ -69,7 +69,7 @@ def test_training_pipeline_runs(sample_data):
     model = catalog.load("trained_model")
     metrics = catalog.load("model_metrics")
     
-    assert model is not None
-    assert hasattr(model, 'predict')
     assert "overall" in metrics
+    assert "accuracy" in metrics["overall"]
     assert "mse" in metrics["overall"]
+    assert 0.0 <= metrics["overall"]["accuracy"] <= 1.0

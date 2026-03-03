@@ -43,6 +43,25 @@ def configure_device() -> str:
     logger.info("Training on device: CPU")
     return "CPU"
 
+class WithinMarginAccuracy(tf.keras.metrics.Metric):
+    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.margin = margin
+        self.total_within = self.add_weight(name='total_within', initializer='zeros')
+        self.total_count = self.add_weight(name='total_count', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        within = tf.cast(tf.abs(y_true - y_pred) <= self.margin, tf.float32)
+        self.total_within.assign_add(tf.reduce_sum(within))
+        self.total_count.assign_add(tf.cast(tf.size(within), tf.float32))
+
+    def result(self):
+        return self.total_within / self.total_count
+
+    def reset_state(self):
+        self.total_within.assign(0.0)
+        self.total_count.assign(0.0)
+
 def create_model(input_shape, units=128, activation='relu', l2_value=0.01, dropout_rate=None, learning_rate=1e-3):
     inputs = layers.Input(shape=input_shape)
 
@@ -63,7 +82,7 @@ def create_model(input_shape, units=128, activation='relu', l2_value=0.01, dropo
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss="mse",
-        metrics=['mae']
+        metrics=['mae', WithinMarginAccuracy(margin=5.0)]
     )
     
     return model
@@ -150,39 +169,57 @@ def train_model(
 def evaluate_model(
     model: tf.keras.Model,
     X_test: pd.DataFrame,
-    y_test: pd.DataFrame
+    y_test: pd.DataFrame,
+    error_margin: float = 5.0
 ) -> Dict[str, Any]:
     X_test_cnn, y_test_array = prepare_data_for_cnn(X_test, y_test)
     
     y_pred = model.predict(X_test_cnn)
     
+    # Classic metrics (kept for reference / MLflow logging)
     mse = mean_squared_error(y_test_array, y_pred)
     mae = mean_absolute_error(y_test_array, y_pred)
     r2 = r2_score(y_test_array, y_pred)
+
+    # ---- New: accuracy based on absolute error margin ----
+    abs_errors = np.abs(y_test_array - y_pred)
+    within_margin = abs_errors <= error_margin          # boolean matrix
+    overall_accuracy = float(np.mean(within_margin))    # proportion of ALL values within margin
     
     per_frequency_metrics = {}
     columns = y_test.columns.tolist()
     for i, col in enumerate(columns):
+        col_within = within_margin[:, i]
         per_frequency_metrics[col] = {
+            "accuracy": float(np.mean(col_within)),
             "mse": float(mean_squared_error(y_test_array[:, i], y_pred[:, i])),
             "mae": float(mean_absolute_error(y_test_array[:, i], y_pred[:, i])),
             "r2": float(r2_score(y_test_array[:, i], y_pred[:, i]))
         }
     
     metrics = {
-        "overall": {"mse": float(mse), "mae": float(mae), "r2": float(r2)},
+        "overall": {
+            "accuracy": overall_accuracy,
+            "error_margin_hz": error_margin,
+            "mse": float(mse),
+            "mae": float(mae),
+            "r2": float(r2),
+        },
         "per_frequency": per_frequency_metrics
     }
     
-    # Log to the same externally-managed run
+    # Log to MLflow
     if mlflow.active_run():
         mlflow.log_metrics({
+            "test_accuracy": overall_accuracy,
+            "error_margin_hz": error_margin,
             "test_mse": float(mse),
             "test_mae": float(mae),
             "test_r2": float(r2),
         })
         for col, freq_metrics in per_frequency_metrics.items():
             freq_label = col.replace("after_exam_", "").replace("_Hz", "")
+            mlflow.log_metric(f"accuracy_{freq_label}", freq_metrics["accuracy"])
             mlflow.log_metric(f"mse_{freq_label}", freq_metrics["mse"])
             mlflow.log_metric(f"mae_{freq_label}", freq_metrics["mae"])
             mlflow.log_metric(f"r2_{freq_label}", freq_metrics["r2"])
@@ -191,7 +228,5 @@ def evaluate_model(
         print(f">>> MLflow Run ID: {mlflow.active_run().info.run_id}")
         print(f">>> Load this model with: mlflow.tensorflow.load_model('runs:/{mlflow.active_run().info.run_id}/model')")
 
-
-    print(f"Model Performance - MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
+    print(f"Model Performance - Accuracy (±{error_margin}Hz): {overall_accuracy:.2%}, MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     return metrics
-
