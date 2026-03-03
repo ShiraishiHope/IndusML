@@ -6,3 +6,4 @@ kedro-datasets[pandas,tensorflow]
 mlflow
 tensorflow
 tensorflow-metal; sys_platform == "darwin"
+optuna

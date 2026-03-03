@@ -29,8 +29,8 @@ y_test:
 trained_model:
   type: tensorflow.TensorFlowModelDataset
   filepath: data/06_models/audiogram_model.keras
-  save_args:
-    save_format: keras
+  load_args:
+    compile: false
 
 # Metrics
 model_metrics:
@@ -67,3 +67,7 @@ features:
 targets:
   type: pandas.CSVDataset
   filepath: data/03_primary/targets.csv
+
+best_hyperparameters:
+  type: json.JSONDataset
+  filepath: data/06_models/best_hyperparameters.json

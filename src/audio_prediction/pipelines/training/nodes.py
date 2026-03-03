@@ -13,6 +13,7 @@ from mlflow.models.signature import infer_signature
 import platform
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -186,5 +187,11 @@ def evaluate_model(
             mlflow.log_metric(f"mae_{freq_label}", freq_metrics["mae"])
             mlflow.log_metric(f"r2_{freq_label}", freq_metrics["r2"])
 
+    if mlflow.active_run():
+        print(f">>> MLflow Run ID: {mlflow.active_run().info.run_id}")
+        print(f">>> Load this model with: mlflow.tensorflow.load_model('runs:/{mlflow.active_run().info.run_id}/model')")
+
+
     print(f"Model Performance - MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     return metrics
+
