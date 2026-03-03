@@ -3,10 +3,20 @@ raw_audiograms:
   type: pandas.CSVDataset
   filepath: data/01_raw/tonal_exams.csv
 
+raw_vocal_data:
+  type: pandas.CSVDataset
+  filepath: vocal_dataset.csv
+  load_args:
+    sep: ","
+
 # Cleaned data
 cleaned_audiograms:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/cleaned_audiograms.csv
+
+cleaned_vocal_data:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/cleaned_vocal_data.csv
 
 # Train/Test split
 X_train:
@@ -71,3 +81,34 @@ targets:
 best_hyperparameters:
   type: json.JSONDataset
   filepath: data/06_models/best_hyperparameters.json
+
+  # Tenseurs pour le CNN (Sauvegardés en format Pickle)
+X_train_vocal:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/X_train.pkl
+
+X_test_vocal:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/X_test.pkl
+
+y_train_vocal:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/y_train.pkl
+
+y_test_vocal:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/y_test.pkl
+
+X_vocal_full:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/X_vocal_full.pkl
+
+y_vocal_full:
+  type: pickle.PickleDataset
+  filepath: data/05_model_input/y_vocal_full.pkl
+# Modèle TensorFlow
+vocal_model:
+  type: tensorflow.TensorFlowModelDataset
+  filepath: data/06_models/vocal_model.keras
+  save_args:
+    save_format: keras

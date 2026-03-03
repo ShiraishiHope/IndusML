@@ -31,7 +31,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 "test_size": "params:data_processing.test_size",
                 "random_state": "params:data_processing.random_state",
             },
-            outputs=["X_train", "X_test", "y_train", "y_test"],
+            outputs=["X_train_vocal", "X_test_vocal", "y_train_vocal", "y_test_vocal"],
             name="split_vocal_train_test_node"
         )
     ])

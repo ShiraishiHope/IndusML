@@ -10,19 +10,19 @@ def create_pipeline(**kwargs) -> Pipeline:
         node(
             func=train_model,
             inputs=[
-                "X_train", "y_train",
+                "X_train_vocal", "y_train_vocal",
                 "params:training.units",
                 "params:training.epochs",
                 "params:training.batch_size",
                 "params:training.learning_rate",
                 "params:training.dropout_rate"
             ],
-            outputs="trained_model",
-            name="train_model_node"
+            outputs="vocal_model",
+            name="vocal_model_node"
         ),
         node(
             func=evaluate_model,
-            inputs=["trained_model", "X_test", "y_test"],
+            inputs=["vocal_model", "X_test_vocal", "y_test_vocal"],
             outputs="model_metrics",
             name="evaluate_model_node"
         )
