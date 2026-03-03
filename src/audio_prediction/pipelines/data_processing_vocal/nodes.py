@@ -17,17 +17,15 @@ def validate_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         "patients_ecartes": 0
     }
 
-    # 1. Nettoyage de base : conversion numérique forcée des scores et intensités
+    # 1. Nettoyage de base : conversion numérique forcée
     cols_check = ['recognition_score', 'intensity_db', 'is_aided']
     for col in cols_check:
         df[col] = pd.to_numeric(df[col], errors='coerce')
     
-    # Supprimer les lignes où le score est invalide (NaN ou hors limites)
     df = df.dropna(subset=cols_check)
-    df = df[(df['recognition_score'] >= 0) & (df['recognition_score'] <= 110)] # On accepte un petit dépassement
+    df = df[(df['recognition_score'] >= 0) & (df['recognition_score'] <= 110)]
 
     # 2. Filtrage des patients incomplets
-    # On veut 21 points (0, 5... 100) pour chaque état
     def est_complet(group):
         points_sans = len(group[group['is_aided'] == 0])
         points_avec = len(group[group['is_aided'] == 1])
@@ -43,10 +41,25 @@ def validate_data(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
 
 def prepare_vocal_sequences(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Transforme le DataFrame validé en séquences (tenseurs) pour le CNN.
-    X = Courbe sans appareil (is_aided=0)
-    y = Courbe avec appareil (is_aided=1)
+    Transforme le DataFrame en tenseurs pour le CNN avec inclusion de la catégorie.
+    X shape: (nb_patients, 21, 2) -> [Score, Code_Catégorie]
+    y shape: (nb_patients, 21)    -> [Score_Aided]
     """
+    # 1. Mapping des catégories en nombres pour le modèle
+    mapping_cat = {
+        'Normo-entendant': 0,
+        'Surdité Légère': 1,
+        'Surdité Moyenne': 2,
+        'Surdité Sévère': 3,
+        'Surdité Profonde': 4
+    }
+    
+    # On crée une colonne numérique pour la catégorie (par défaut 0 si absent)
+    if 'categorie_surdite' in df.columns:
+        df['cat_code'] = df['categorie_surdite'].map(mapping_cat).fillna(0)
+    else:
+        df['cat_code'] = 0
+
     patients = sorted(df['patient_id'].unique())
     X_list = []
     y_list = []
@@ -54,19 +67,22 @@ def prepare_vocal_sequences(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     for p_id in patients:
         p_data = df[df['patient_id'] == p_id]
         
-        # Courbe Sans Appareil (Triée par intensité de 0 à 100)
-        curve_sans = p_data[p_data['is_aided'] == 0].sort_values('intensity_db')['recognition_score'].values
+        # Données Sans Appareil
+        data_sans = p_data[p_data['is_aided'] == 0].sort_values('intensity_db')
+        curve_sans = data_sans['recognition_score'].values
+        cat_feature = data_sans['cat_code'].values # Vecteur de la même taille (21,)
+        
+        # On empile le score et le code catégorie : shape (21, 2)
+        # Cela permet au CNN d'apprendre la courbe ET la sévérité en même temps
+        combined_features = np.stack([curve_sans, cat_feature], axis=-1)
         
         # Courbe Avec Appareil (Target)
         curve_avec = p_data[p_data['is_aided'] == 1].sort_values('intensity_db')['recognition_score'].values
         
-        X_list.append(curve_sans)
+        X_list.append(combined_features)
         y_list.append(curve_avec)
 
-    # Conversion en float32 pour TensorFlow et ajout de la dimension "canal"
-    # X shape: (nb_patients, 21, 1)
-    # y shape: (nb_patients, 21)
-    X = np.array(X_list).astype('float32').reshape(-1, 21, 1)
+    X = np.array(X_list).astype('float32')
     y = np.array(y_list).astype('float32')
     
     return X, y
@@ -78,9 +94,7 @@ def split_vocal_data(
     test_size: float, 
     random_state: int
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Découpe les matrices NumPy en train/test.
-    """
+    """Découpe les matrices NumPy en train/test."""
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state
     )

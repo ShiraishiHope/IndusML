@@ -38,3 +38,10 @@ optuna:
     dropout_rate_min: 0.1
     dropout_rate_max: 0.5
     batch_size_choices: [16, 32, 64]
+
+training_vocal:
+    units: 256              
+    learning_rate: 0.0005   
+    epochs: 100           
+    batch_size: 32
+    dropout_rate: 0.2

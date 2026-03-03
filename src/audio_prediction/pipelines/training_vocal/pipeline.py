@@ -11,11 +11,11 @@ def create_pipeline(**kwargs) -> Pipeline:
             func=train_model,
             inputs=[
                 "X_train_vocal", "y_train_vocal",
-                "params:training.units",
-                "params:training.epochs",
-                "params:training.batch_size",
-                "params:training.learning_rate",
-                "params:training.dropout_rate"
+                "params:training_vocal.units",
+                "params:training_vocal.epochs",
+                "params:training_vocal.batch_size",
+                "params:training_vocal.learning_rate",
+                "params:training_vocal.dropout_rate"
             ],
             outputs="vocal_model",
             name="vocal_model_node"
