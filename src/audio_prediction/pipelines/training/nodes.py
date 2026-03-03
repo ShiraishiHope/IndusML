@@ -9,6 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from typing import Dict, Any, Tuple
 import mlflow
 import mlflow.tensorflow
+from mlflow.models.signature import infer_signature
 
 
 def create_model(input_shape, units=128, activation='relu', l2_value=0.01, dropout_rate=None, learning_rate=1e-3):
@@ -105,7 +106,10 @@ def train_model(
                 mlflow.log_metric("val_loss", val_loss, step=epoch_idx)
                 mlflow.log_metric("val_mae", val_mae, step=epoch_idx)
 
-        mlflow.tensorflow.log_model(model, "model")
+        X_sample = X_train_cnn[:5]
+        y_sample = model.predict(X_sample)
+        signature = infer_signature(X_sample, y_sample)
+        mlflow.tensorflow.log_model(model, "model", signature=signature)
 
     return model
 
