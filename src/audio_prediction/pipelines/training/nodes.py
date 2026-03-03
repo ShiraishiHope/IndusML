@@ -44,8 +44,8 @@ def configure_device() -> str:
     return "CPU"
 
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def init(self, margin=5.0, name='accuracy_5hz', **kwargs):
-        super().init(name=name, **kwargs)
+    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+        super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
         self.total_count = self.add_weight(name='total_count', initializer='zeros')
@@ -84,6 +84,7 @@ def create_model(input_shape, units=128, activation='relu', l2_value=0.01, dropo
         loss="mse",
         metrics=['mae', WithinMarginAccuracy(margin=5.0)]
     )
+    
     return model
 
 

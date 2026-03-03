@@ -24,6 +24,25 @@ def configure_device() -> str:
             pass
     return "CPU"
 
+class WithinMarginAccuracy(tf.keras.metrics.Metric):
+    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.margin = margin
+        self.total_within = self.add_weight(name='total_within', initializer='zeros')
+        self.total_count = self.add_weight(name='total_count', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        within = tf.cast(tf.abs(y_true - y_pred) <= self.margin, tf.float32)
+        self.total_within.assign_add(tf.reduce_sum(within))
+        self.total_count.assign_add(tf.cast(tf.size(within), tf.float32))
+
+    def result(self):
+        return self.total_within / self.total_count
+
+    def reset_state(self):
+        self.total_within.assign(0.0)
+        self.total_count.assign(0.0)
+
 def create_vocal_model(input_shape=(21, 1), learning_rate=1e-3, units=128, dropout_rate=0.2):
     """
     Architecture CNN pour prédire l'amélioration vocale.
@@ -49,7 +68,7 @@ def create_vocal_model(input_shape=(21, 1), learning_rate=1e-3, units=128, dropo
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss="mse",
-        metrics=['mae']
+        metrics=['mae', WithinMarginAccuracy(margin=5.0)]
     )
     return model
 
