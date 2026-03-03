@@ -125,10 +125,20 @@ class TestTrainingNodes:
         metrics = evaluate_model(model, X_test, y_test)
         
         assert "overall" in metrics
+        assert "accuracy" in metrics["overall"]
+        assert "error_margin_hz" in metrics["overall"]
         assert "mse" in metrics["overall"]
         assert "mae" in metrics["overall"]
         assert "r2" in metrics["overall"]
         assert "per_frequency" in metrics
+        
+        # Accuracy must be between 0 and 1
+        assert 0.0 <= metrics["overall"]["accuracy"] <= 1.0
+        
+        # Check per-frequency accuracy exists
+        for col_metrics in metrics["per_frequency"].values():
+            assert "accuracy" in col_metrics
+            assert 0.0 <= col_metrics["accuracy"] <= 1.0
 
 
 class TestInferenceNodes:
