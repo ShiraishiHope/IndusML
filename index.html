@@ -3,358 +3,353 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analyse de Test Tonal</title>
-    <!-- Import de Tailwind CSS pour un design moderne et rapide -->
+    <title>BonneEcoute - Analyse de Test Tonal</title>
+    <!-- Framework CSS Tailwind pour un design moderne et responsive -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Import de Chart.js pour les graphiques -->
+    <!-- Chart.js pour la visualisation de l'audiogramme -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Personnalisation légère */
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }
+        /* Style pour les éléments cliquables de l'historique */
+        .history-item { cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
+        .history-item:hover { border-left-color: #3b82f6; background-color: #f1f5f9; transform: translateX(2px); }
+        /* Scrollbar fine pour la liste de l'historique */
+        #history-list::-webkit-scrollbar { width: 4px; }
+        #history-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen text-gray-800 flex flex-col">
+<body class="min-h-screen flex flex-col">
 
-    <!-- En-tête -->
-    <header class="bg-blue-900 text-white shadow-lg py-4 px-6 flex justify-between items-center">
+    <!-- En-tête de l'application -->
+    <header class="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center px-8">
         <div class="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
             </svg>
-            <h1 class="text-2xl font-bold tracking-wider">BONNE<span class="text-blue-300">ECOUTE</span></h1>
+            <h1 class="text-xl font-black tracking-tighter uppercase">BONNE<span class="text-blue-400">ECOUTE</span></h1>
         </div>
-        <div class="text-sm bg-blue-800 px-3 py-1 rounded-full border border-blue-700">
-            API Status: <span id="api-status" class="text-yellow-400 font-semibold">Vérification...</span>
+        <div id="api-status-badge" class="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 uppercase tracking-widest text-yellow-500">
+            API: Vérification...
         </div>
     </header>
 
-    <!-- Contenu Principal -->
-    <main class="flex-grow flex items-center justify-center p-6">
-        <div class="w-full max-w-5xl grid md:grid-cols-2 gap-8">
+    <main class="flex-grow grid lg:grid-cols-12 gap-6 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Colonne Gauche : Formulaire & Historique -->
+        <div class="lg:col-span-5 space-y-6">
             
-            <!-- Colonne 1 : Formulaire d'entrée -->
-            <div class="glass-panel rounded-2xl shadow-xl p-8 border border-gray-100">
-                <h2 class="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Données du Test Tonal
+            <!-- Section Saisie des Données -->
+            <section class="glass rounded-3xl shadow-sm border border-slate-200 p-8">
+                <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </span>
+                    Mesures Audiométriques
                 </h2>
-                
-                <form id="prediction-form" class="space-y-5">
 
-                    <!-- Mesures Avant Examen (Tonal) -->
+                <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Mesures Avant Examen (dB)</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">125 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_125_Hz" placeholder="Ex: 117"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">250 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_250_Hz" placeholder="Ex: 105"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">500 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_500_Hz" placeholder="Ex: 102"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">1000 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_1000_Hz" placeholder="Ex: 81"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">2000 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_2000_Hz" placeholder="Ex: 115"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">4000 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_4000_Hz" placeholder="Ex: 85"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">8000 Hz</label>
-                                <input type="text" inputmode="decimal" id="before_exam_8000_Hz" placeholder="Ex: 113"
-                                    class="w-full px-3 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            </div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Identifiant de l'Appareil</label>
+                        <input type="text" id="appareil_id" placeholder="Ex: UNIT-001" class="w-full mt-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3">
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">125 Hz</label>
+                            <input type="text" id="f125" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">250 Hz</label>
+                            <input type="text" id="f250" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">500 Hz</label>
+                            <input type="text" id="f500" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">1k Hz</label>
+                            <input type="text" id="f1k" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">2k Hz</label>
+                            <input type="text" id="f2k" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">4k Hz</label>
+                            <input type="text" id="f4k" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">8k Hz</label>
+                            <input type="text" id="f8k" placeholder="dB" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none">
                         </div>
                     </div>
 
-                    <button type="button" id="submit-btn"
-                        class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                        <span>Lancer l'Analyse</span>
-                        <svg id="loading-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                </form>
-            </div>
-
-            <!-- Colonne 2 : Résultats -->
-            <div class="flex flex-col gap-6">
-                <!-- Carte de Résultat (Graphique) -->
-                <div class="glass-panel rounded-2xl shadow-xl p-8 border border-gray-100 flex-grow flex flex-col">
-                    <h2 class="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Résultat de la Prédiction
-                    </h2>
-                    
-                    <div id="result-container" class="flex-grow flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <p class="text-gray-500 font-medium">En attente de données...</p>
-                        <p class="text-sm text-gray-400 mt-1">Remplissez le formulaire pour obtenir une prédiction.</p>
-                    </div>
-                </div>
-
-                <!-- Bouton Ré-entraînement -->
-                <div class="glass-panel rounded-xl shadow-md p-4 border border-gray-100 flex justify-between items-center">
-                    <div class="text-sm text-gray-600">
-                        <p class="font-bold">Maintenance du modèle</p>
-                        <p>Mettre à jour avec les nouvelles données</p>
-                    </div>
-                    <button id="train-btn" class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold py-2 px-4 rounded-lg shadow transition-colors">
-                        Re-entraîner
+                    <button id="predict-btn" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg hover:bg-blue-700 transition-all flex justify-center items-center gap-2 active:scale-95">
+                        <span>Lancer l'Analyse Prédictive</span>
+                        <div id="loader" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     </button>
                 </div>
-            </div>
+            </section>
 
+            <!-- Section Journal (Historique) -->
+            <section class="glass rounded-3xl shadow-sm border border-slate-200 p-6">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex justify-between items-center">
+                    Journal des sessions
+                    <button onclick="fetchHistory()" class="text-blue-500 text-[10px] hover:underline font-black">ACTUALISER</button>
+                </h3>
+                <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                    <p class="text-[10px] text-slate-400 text-center py-4 italic">Aucun test archivé.</p>
+                </div>
+            </section>
         </div>
+
+        <!-- Colonne Droite : Audiogramme -->
+        <div class="lg:col-span-7">
+            <div class="glass rounded-3xl shadow-sm border border-slate-200 p-8 h-full flex flex-col">
+                <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </span>
+                    Simulation de Correction Auditive
+                </h2>
+                
+                <div id="chart-placeholder" class="flex-grow flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 p-10 text-center">
+                    <svg class="w-12 h-12 mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <p class="text-sm italic">Entrez des mesures et lancez l'analyse pour visualiser l'audiogramme comparatif.</p>
+                </div>
+                
+                <div id="chart-container" class="hidden flex-grow relative min-h-[450px] w-full">
+                    <canvas id="audiogram"></canvas>
+                </div>
+
+                <div class="mt-6 flex justify-between items-center bg-slate-100 p-4 rounded-2xl border border-slate-200">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Moteur d'inférence</span>
+                        <span class="text-xs font-black text-slate-700">Version 1.0</span>
+                    </div>
+                    <button id="train-btn" class="text-[10px] font-black uppercase bg-slate-800 text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all active:scale-95 shadow-md">Re-entraîner</button>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
-        // Configuration de l'URL de votre API Flask
-        const API_BASE_URL = 'http://127.0.0.1:5000';
+        const API = "http://127.0.0.1:5000";
+        let chart = null;
 
-        // Éléments du DOM
-        const submitBtn = document.getElementById('submit-btn');
-        const spinner = document.getElementById('loading-spinner');
-        const resultContainer = document.getElementById('result-container');
-        const statusIndicator = document.getElementById('api-status');
-        const trainBtn = document.getElementById('train-btn');
-        
-        let predictionChart = null; // Variable pour stocker le graphique
-
-        // 1. Vérifier si l'API est en ligne au chargement
-        async function checkApiStatus() {
+        // 1. Vérification du statut de l'API et chargement de l'historique initial
+        async function checkStatus() {
+            const badge = document.getElementById('api-status-badge');
             try {
-                const response = await fetch(`${API_BASE_URL}/`);
-                if (response.ok) {
-                    statusIndicator.textContent = "En ligne";
-                    statusIndicator.className = "text-green-400 font-bold";
+                const res = await fetch(API + "/");
+                if(res.ok) {
+                    badge.innerText = "API: Connecté";
+                    badge.classList.replace('text-yellow-500', 'text-emerald-500');
+                    fetchHistory();
                 }
-            } catch (error) {
-                statusIndicator.textContent = "Hors ligne";
-                statusIndicator.className = "text-red-400 font-bold";
+            } catch(e) {
+                badge.innerText = "API: Déconnecté";
+                badge.classList.replace('text-yellow-500', 'text-rose-500');
             }
         }
-        checkApiStatus();
 
-        // Fonction pour lire correctement les nombres (remplace la virgule par un point)
-        function lireNombre(idHTML) {
-            let valeurTexte = document.getElementById(idHTML).value;
-            if (!valeurTexte || valeurTexte.trim() === "") return NaN;
-            valeurTexte = valeurTexte.replace(',', '.');
-            return parseFloat(valeurTexte);
+        // 2. Récupérer l'historique depuis la route /history de app.py
+        async function fetchHistory() {
+            const list = document.getElementById('history-list');
+            try {
+                const res = await fetch(API + "/history");
+                const data = await res.json();
+                list.innerHTML = "";
+                
+                if(!data || data.length === 0) {
+                    list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4 italic">Aucun test archivé.</p>';
+                    return;
+                }
+
+                // Affichage du plus récent en haut
+                data.reverse().forEach(entry => {
+                    const item = document.createElement('div');
+                    item.className = "history-item p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center shadow-sm";
+                    
+                    // Au clic, on appelle la fonction de restauration
+                    item.onclick = () => loadHistoryEntry(entry);
+                    
+                    item.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-tighter">ID Appareil</span>
+                            <span class="text-xs font-bold text-slate-700">${entry.appareil_id || 'N/A'}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[8px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold uppercase tracking-wider">Restaurer</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch(e) { console.error("Erreur lors du chargement de l'historique:", e); }
         }
 
-        // 2. Gérer la soumission manuelle au clic du bouton
-        submitBtn.addEventListener('click', async () => {
-          
-            const payload = {
-                before_exam_125_Hz: lireNombre('before_exam_125_Hz'),
-                before_exam_250_Hz: lireNombre('before_exam_250_Hz'),
-                before_exam_500_Hz: lireNombre('before_exam_500_Hz'),
-                before_exam_1000_Hz: lireNombre('before_exam_1000_Hz'),
-                before_exam_2000_Hz: lireNombre('before_exam_2000_Hz'),
-                before_exam_4000_Hz: lireNombre('before_exam_4000_Hz'),
-                before_exam_8000_Hz: lireNombre('before_exam_8000_Hz')
+        // 3. Restaurer une entrée du journal dans le formulaire
+        function loadHistoryEntry(e) {
+            document.getElementById('appareil_id').value = e.appareil_id || "";
+            document.getElementById('f125').value = e.before_exam_125_Hz || "";
+            document.getElementById('f250').value = e.before_exam_250_Hz || "";
+            document.getElementById('f500').value = e.before_exam_500_Hz || "";
+            document.getElementById('f1k').value = e.before_exam_1000_Hz || "";
+            document.getElementById('f2k').value = e.before_exam_2000_Hz || "";
+            document.getElementById('f4k').value = e.before_exam_4000_Hz || "";
+            document.getElementById('f8k').value = e.before_exam_8000_Hz || "";
+            
+            // Notification visuelle rapide sur le bouton
+            const btn = document.getElementById('predict-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Données chargées !";
+            btn.classList.replace('bg-blue-600', 'bg-emerald-500');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.replace('bg-emerald-500', 'bg-blue-600');
+            }, 1000);
+        }
+
+        // 4. Lancer l'analyse (Predict)
+        document.getElementById('predict-btn').onclick = async () => {
+            const id = document.getElementById('appareil_id').value;
+            if(!id) return alert("Veuillez saisir un Identifiant d'Appareil.");
+
+            const parseVal = (id) => {
+                let v = document.getElementById(id).value.replace(',', '.');
+                return v === "" ? NaN : parseFloat(v);
             };
 
-            const valeursInvalides = Object.values(payload).some(val => typeof val === 'number' && Number.isNaN(val));
-            if (valeursInvalides) {
-                alert("Erreur : Toutes les cases de fréquences doivent être remplies avec des nombres valides.");
-                return;
+            const payload = {
+                appareil_id: id,
+                before_exam_125_Hz: parseVal('f125'),
+                before_exam_250_Hz: parseVal('f250'),
+                before_exam_500_Hz: parseVal('f500'),
+                before_exam_1000_Hz: parseVal('f1k'),
+                before_exam_2000_Hz: parseVal('f2k'),
+                before_exam_4000_Hz: parseVal('f4k'),
+                before_exam_8000_Hz: parseVal('f8k'),
+                source: "user_interface_api"
+            };
+
+            // Vérification des champs vides
+            if (Object.values(payload).some(val => typeof val === 'number' && isNaN(val))) {
+                return alert("Veuillez remplir toutes les fréquences avec des nombres.");
             }
 
-            // Mettre en tableau les valeurs "Avant" pour le graphique
-            const beforeValues = [
-                payload.before_exam_125_Hz, payload.before_exam_250_Hz, payload.before_exam_500_Hz,
-                payload.before_exam_1000_Hz, payload.before_exam_2000_Hz, payload.before_exam_4000_Hz, payload.before_exam_8000_Hz
-            ];
-
-            // UI: Activer le chargement
-            submitBtn.disabled = true;
-            spinner.classList.remove('hidden');
-            resultContainer.innerHTML = `<p class="text-blue-500 font-bold">Analyse en cours... veuillez patienter.</p>`;
-            resultContainer.className = "flex-grow flex flex-col justify-center items-center text-center p-6 border-2 border-blue-200 rounded-xl bg-blue-50";
+            const loader = document.getElementById('loader');
+            loader.classList.remove('hidden');
 
             try {
-                // Envoyer la requête POST à l'API Flask
-                const response = await fetch(`${API_BASE_URL}/predict`, {
+                const res = await fetch(API + "/predict", {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
-
-                if (!response.ok) throw new Error('Erreur lors de la prédiction du modèle');
-
-                const data = await response.json();
                 
-                // Préparer les données "Après" à partir de la réponse (on gère si c'est un tableau ou un objet)
-                const predictionData = Array.isArray(data) ? data[0] : data;
-                
-                const afterValues = [
-                    predictionData.after_exam_125_Hz || 0,
-                    predictionData.after_exam_250_Hz || 0,
-                    predictionData.after_exam_500_Hz || 0,
-                    predictionData.after_exam_1000_Hz || 0,
-                    predictionData.after_exam_2000_Hz || 0,
-                    predictionData.after_exam_4000_Hz || 0,
-                    predictionData.after_exam_8000_Hz || 0
-                ];
+                if(!res.ok) throw new Error("Erreur serveur");
 
-                // Afficher le résultat avec le canvas pour le graphique
-                resultContainer.className = "flex-grow flex flex-col justify-start items-center w-full p-4 border border-gray-200 rounded-xl bg-white shadow-inner";
-                resultContainer.innerHTML = `
-                    <div class="w-full flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-700">Comparaison Avant / Après</h3>
-                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold shadow-sm">Analyse Réussie</span>
-                    </div>
-                    
-                    <!-- Zone du graphique -->
-                    <div class="w-full relative h-72">
-                        <canvas id="predictionChart"></canvas>
-                    </div>
+                const result = await res.json();
+                const prediction = Array.isArray(result) ? result[0] : result;
 
-                    <!-- Optionnel: Menu déroulant pour voir le JSON brut -->
-                    <div class="mt-4 w-full text-left">
-                        <details class="text-xs text-gray-500 cursor-pointer">
-                            <summary class="hover:text-blue-600 font-medium">Afficher les données brutes (JSON)</summary>
-                            <pre class="mt-2 p-3 bg-gray-100 rounded border border-gray-200 overflow-x-auto text-[10px] text-gray-700">${JSON.stringify(data, null, 2)}</pre>
-                        </details>
-                    </div>
-                `;
-
-                // Initialiser le graphique avec Chart.js
-                const ctx = document.getElementById('predictionChart').getContext('2d');
-                
-                // Détruire l'ancien graphique s'il existe pour éviter les superpositions
-                if(predictionChart) {
-                    predictionChart.destroy();
-                }
-
-                predictionChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['125 Hz', '250 Hz', '500 Hz', '1000 Hz', '2000 Hz', '4000 Hz', '8000 Hz'],
-                        // Les courbes sont inversées ici : Après Examen est maintenant affiché avant Avant Examen
-                        datasets: [
-                            {
-                                label: 'Avec Appareil (Simulation)',
-                                data: afterValues,
-                                borderColor: 'rgba(16, 185, 129, 1)', // Vert
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                borderWidth: 2,
-                                pointBackgroundColor: 'rgba(16, 185, 129, 1)',
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                tension: 0.3,
-                                fill: true
-                            },
-                            {
-                                label: 'Sans Appareil (Perte initiale)',
-                                data: beforeValues,
-                                borderColor: 'rgba(59, 130, 246, 1)', // Bleu
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                borderWidth: 2,
-                                pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                tension: 0.3, // Rend la courbe un peu arrondie
-                                fill: true
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false,
-                        },
-                        scales: {
-                            y: {
-                                reverse: true, // C'EST ICI : Inversion de l'axe Y (0 en haut)
-                                min: -10,      // Minimum standard pour un audiogramme
-                                max: 120,      // Maximum standard pour une perte profonde
-                                title: { display: true, text: 'Perte Auditive (dB HL)' }
-                            },
-                            x: {
-                                title: { display: true, text: 'Fréquence (Hz)' }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': ' + context.parsed.y + ' dB';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error(error);
-                resultContainer.className = "flex-grow flex flex-col justify-center items-center text-center p-6 border-2 border-red-200 rounded-xl bg-red-50";
-                resultContainer.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
-                    </svg>
-                    <p class="text-red-700 font-bold">Erreur de connexion</p>
-                    <p class="text-sm text-red-500 mt-1">Impossible de contacter l'API (assurez-vous que l'application Python est lancée et n'a pas renvoyé d'erreur).</p>
-                `;
+                // Affichage du graphique
+                renderAudiogram(payload, prediction);
+                // Mise à jour du journal
+                fetchHistory();
+            } catch(e) {
+                alert("Erreur lors de la communication avec l'API Flask.");
             } finally {
-                // UI: Désactiver le chargement
-                submitBtn.disabled = false;
-                spinner.classList.add('hidden');
+                loader.classList.add('hidden');
             }
-        });
+        };
 
-        // 3. Bouton d'entraînement
-        trainBtn.addEventListener('click', async () => {
-            if(!confirm("Lancer un ré-entraînement peut prendre du temps. Continuer ?")) return;
-            
-            const originalText = trainBtn.innerText;
-            trainBtn.innerText = "Entraînement en cours...";
-            trainBtn.disabled = true;
+        // 5. Rendu du graphique comparatif (Norme Audiogramme : 0dB en haut)
+        function renderAudiogram(before, after) {
+            document.getElementById('chart-placeholder').classList.add('hidden');
+            document.getElementById('chart-container').classList.remove('hidden');
 
+            const labels = ['125 Hz', '250 Hz', '500 Hz', '1000 Hz', '2000 Hz', '4000 Hz', '8000 Hz'];
+            const dataBefore = [before.before_exam_125_Hz, before.before_exam_250_Hz, before.before_exam_500_Hz, before.before_exam_1000_Hz, before.before_exam_2000_Hz, before.before_exam_4000_Hz, before.before_exam_8000_Hz];
+            const dataAfter = [after.after_exam_125_Hz, after.after_exam_250_Hz, after.after_exam_500_Hz, after.after_exam_1000_Hz, after.after_exam_2000_Hz, after.after_exam_4000_Hz, after.after_exam_8000_Hz];
+
+            if(chart) chart.destroy();
+
+            const ctx = document.getElementById('audiogram').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: 'Avec Appareil (Simulation)', 
+                            data: dataAfter, 
+                            borderColor: '#10b981', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                            tension: 0.3, 
+                            fill: true, 
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            borderWidth: 3
+                        },
+                        { 
+                            label: 'Sans Appareil (Perte initiale)', 
+                            data: dataBefore, 
+                            borderColor: '#3b82f6', 
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+                            tension: 0.3, 
+                            fill: true, 
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            reverse: true, // IMPORTANT : 0dB en haut pour l'audiogramme
+                            min: -10, 
+                            max: 120, 
+                            title: { display: true, text: 'Perte Auditive (dB HL)', font: { size: 12, weight: 'bold' } },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        x: { 
+                            title: { display: true, text: 'Fréquence (Hz)', font: { size: 12, weight: 'bold' } },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: { 
+                        legend: { position: 'top', labels: { font: { size: 12, weight: 'bold' }, usePointStyle: true } },
+                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', padding: 12 }
+                    }
+                }
+            });
+        }
+
+        // 6. Ré-entraînement du modèle
+        document.getElementById('train-btn').onclick = async () => {
+            if(!confirm("Lancer le ré-entraînement global du modèle Kedro ?")) return;
+            const btn = document.getElementById('train-btn');
+            btn.innerText = "ENTRAÎNEMENT...";
+            btn.disabled = true;
             try {
-                const response = await fetch(`${API_BASE_URL}/train`, { method: 'POST' });
-                const result = await response.json();
-                alert(result.message || "Entraînement terminé !");
-            } catch(err) {
+                const res = await fetch(API + "/train", { method: 'POST' });
+                const data = await res.json();
+                alert(data.message);
+            } catch(e) {
                 alert("Erreur lors de l'entraînement.");
             } finally {
-                trainBtn.innerText = originalText;
-                trainBtn.disabled = false;
+                btn.innerText = "RE-ENTRAÎNER";
+                btn.disabled = false;
             }
-        });
+        };
+
+        // Lancement au démarrage
+        checkStatus();
     </script>
 </body>
 </html>
