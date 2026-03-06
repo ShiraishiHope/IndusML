@@ -64,7 +64,7 @@ def optimize_hyperparameters(
                 )
 
                 early_stopping = tf.keras.callbacks.EarlyStopping(
-                    monitor="val_accuracy_5hz",
+                    monitor="val_accuracy",
                     mode="max",
                     patience=5,
                     restore_best_weights=True
@@ -80,7 +80,7 @@ def optimize_hyperparameters(
                     verbose=0,
                 )
 
-                best_val_accuracy = max(history.history["val_accuracy_5hz"])
+                best_val_accuracy = max(history.history["val_accuracy"])
 
                 mlflow.log_params({
                     "units": units,
@@ -88,7 +88,7 @@ def optimize_hyperparameters(
                     "dropout_rate": dropout_rate,
                     "batch_size": batch_size,
                 })
-                mlflow.log_metric("best_val_accuracy_5hz", best_val_accuracy)
+                mlflow.log_metric("best_val_accuracy", round(best_val_accuracy * 100, 2))
 
                 best_objective_value = best_val_accuracy
         else:
@@ -122,12 +122,12 @@ def optimize_hyperparameters(
     study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
-    best_params["best_val_accuracy_5hz"] = study.best_value
+    best_params["best_val_accuracy"] = round(study.best_value * 100, 2)
 
     logger.info("Optuna best parameters: %s", best_params)
 
     if mlflow.active_run():
         mlflow.log_params({f"optuna_best_{k}": v for k, v in study.best_params.items()})
-        mlflow.log_metric("optuna_best_val_accuracy_5hz", study.best_value)
+        mlflow.log_metric("optuna_best_val_accuracy", round(study.best_value * 100, 2))
 
     return best_params

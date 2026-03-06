@@ -25,7 +25,7 @@ def configure_device() -> str:
     return "CPU"
 
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+    def __init__(self, margin=5.0, name='train_accuracy_pct', **kwargs):
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
@@ -141,7 +141,7 @@ def evaluate_model(
     
     if mlflow.active_run():
         mlflow.log_metrics({
-            "test_accuracy_5hz": overall_accuracy,
+            "accuracy": overall_accuracy,
             "test_mae": float(mae)
         })
 
