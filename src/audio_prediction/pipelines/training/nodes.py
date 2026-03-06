@@ -158,7 +158,6 @@ def train_model(
                 mlflow.log_metric("val_loss", val_loss, step=epoch_idx)
                 mlflow.log_metric("val_mae", val_mae, step=epoch_idx)
 
-
     return model
 
 

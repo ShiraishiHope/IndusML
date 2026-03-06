@@ -89,6 +89,8 @@ def optimize_hyperparameters(
                     "batch_size": batch_size,
                 })
                 mlflow.log_metric("best_val_accuracy_5hz", best_val_accuracy)
+
+                best_objective_value = best_val_accuracy
         else:
             # Fallback if no active MLflow run
             model = create_model(
@@ -114,7 +116,7 @@ def optimize_hyperparameters(
 
             best_val_loss = min(history.history["val_loss"])
 
-        return best_val_loss
+        return best_objective_value
 
     study = optuna.create_study(direction=direction)
     study.optimize(objective, n_trials=n_trials)
