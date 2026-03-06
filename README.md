@@ -2,100 +2,108 @@
 
 [![Powered by Kedro](https://img.shields.io/badge/powered_by-kedro-ffc900?logo=kedro)](https://kedro.org)
 
-## Overview
+## Présentation
+Projet Kedro de Machine Learning pour la prédiction de gains prothétiques audiométriques. Il utilise des modèles CNN pour prédire les valeurs audiométriques post-examen à partir des mesures pré-examen, sur des pipelines d'audiométrie tonale et vocale.
 
-This is your new Kedro project, which was generated using `kedro 1.2.0`.
+## Installation des dépendances
 
-Take a look at the [Kedro documentation](https://docs.kedro.org) to get started.
-
-## Rules and guidelines
-
-In order to get the best out of the template:
-
-* Don't remove any lines from the `.gitignore` file we provide
-* Make sure your results can be reproduced by following a data engineering convention
-* Don't commit data to your repository
-* Don't commit any credentials or your local configuration to your repository. Keep all your credentials and local configuration in `conf/local/`
-
-## How to install dependencies
-
-Declare any dependencies in `requirements.txt` for `pip` installation.
-
-To install them, run:
-
-```
 pip install -r requirements.txt
-```
 
-## How to run your Kedro pipeline
+## Pipelines disponibles
 
-You can run your Kedro project with:
+Le projet enregistre les pipelines suivants dans pipeline_registry.py :
 
-```
+## Pipelines d'audiométrie tonale
+
+### Pipeline par défaut (traitement des données + entraînement) :
+
 kedro run
-```
 
-## How to test your Kedro project
+### Traitement des données uniquement
 
-Have a look at the file `tests/test_run.py` for instructions on how to write your tests. You can run your tests as follows:
+Validation des données, séparation features/cibles, et création des ensembles train/test :
 
-```
-pytest
-```
+kedro run --pipeline data_processing
 
-You can configure the coverage threshold in your project's `pyproject.toml` file under the `[tool.coverage.report]` section.
+### Entraînement uniquement 
 
+entraîne le modèle CNN et l'évalue (nécessite les sorties du traitement des données) :
 
-## Project dependencies
+kedro run --pipeline training
 
-To see and update the dependency requirements for your project use `requirements.txt`. You can install the project requirements with `pip install -r requirements.txt`.
+### Entraînement complet (traitement des données + entraînement combinés) :
 
-[Further information about project dependencies](https://docs.kedro.org/en/stable/kedro_project_setup/dependencies.html#project-specific-dependencies)
+kedro run --pipeline train
 
-## How to work with Kedro and notebooks
+### Inférence
 
-> Note: Using `kedro jupyter` or `kedro ipython` to run your notebook provides these variables in scope: `context`, 'session', `catalog`, and `pipelines`.
->
-> Jupyter, JupyterLab, and IPython are already included in the project requirements by default, so once you have run `pip install -r requirements.txt` you will not need to take any extra steps before you use them.
+exécute les prédictions sur de nouvelles données à partir d'un modèle entraîné :
 
-### Jupyter
-To use Jupyter notebooks in your Kedro project, you need to install Jupyter:
+kedro run --pipeline inference
 
-```
-pip install jupyter
-```
+### Optimisation des hyperparamètres (traitement des données + optimisation Optuna) :
 
-After installing Jupyter, you can start a local notebook server:
+kedro run --pipeline hp_tuning
 
-```
+## Pipelines d'audiométrie vocale
+
+### Traitement des données vocales uniquement :
+
+kedro run --pipeline data_processing_vocal
+
+### Entraînement vocal uniquement :
+
+kedro run --pipeline training_vocal
+
+### Entraînement vocal complet :
+
+kedro run --pipeline train_vocal
+
+### Inférence vocale :
+
+kedro run --pipeline inference_vocal
+
+## Lancer l'API
+
+Démarrer le serveur FastAPI en local :
+
+uvicorn api:app --host 0.0.0.0 --port 8000
+
+Ou directement via Python :
+
+python api.py
+
+## Points d'accès de l'API :
+
+GET / — Informations sur l'API
+GET /health — Vérification de l'état et disponibilité du modèle
+POST /train — Lancer le pipeline d'entraînement complet
+POST /predict — Prédire à partir de données audiométriques d'entrée
+
+## Docker
+
+Construire l'image Docker :
+
+docker build -t audio_prediction:latest .
+
+Lancer le conteneur :
+
+docker run -p 8000:8000 audio_prediction:latest
+
+Tests
+
+Exécuter l'ensemble des tests avec pytest :
+
+## pytest
+
+Utilisation avec les notebooks Kedro
+
 kedro jupyter notebook
-```
 
-### JupyterLab
-To use JupyterLab, you need to install it:
-
-```
-pip install jupyterlab
-```
-
-You can also start JupyterLab:
-
-```
 kedro jupyter lab
-```
 
-### IPython
-And if you want to run an IPython session:
-
-```
 kedro ipython
-```
 
-### How to ignore notebook output cells in `git`
-To automatically strip out all output cell contents before committing to `git`, you can use tools like [`nbstripout`](https://github.com/kynan/nbstripout). For example, you can add a hook in `.git/config` with `nbstripout --install`. This will run `nbstripout` before anything is committed to `git`.
+## Dépendances du projet
 
-> *Note:* Your output cells will be retained locally.
-
-## Package your Kedro project
-
-[Further information about building project documentation and packaging your project](https://docs.kedro.org/en/stable/deploy/package_a_project/#package-an-entire-kedro-project)
+Pour consulter et mettre à jour les dépendances, modifiez requirements.txt. Installez-les avec pip install -r requirements.txt.

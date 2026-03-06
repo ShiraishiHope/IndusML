@@ -28,8 +28,8 @@ training:
 
 optuna:
   n_trials: 30
-  metric: "val_loss"
-  direction: "minimize"
+  metric: "val_accuracy_5hz"
+  direction: "maximize"
   search_space:
     units_min: 32
     units_max: 256
