@@ -145,11 +145,12 @@ def train_model(
 
     # Log training metrics
     if mlflow.active_run():
-        for epoch_idx, (loss, mae) in enumerate(
-            zip(history.history['loss'], history.history['mae'])
+        for epoch_idx, (loss, mae, acc) in enumerate(
+            zip(history.history['loss'], history.history['mae'], history.history['accuracy'])
         ):
             mlflow.log_metric("train_loss", loss, step=epoch_idx)
             mlflow.log_metric("train_mae", mae, step=epoch_idx)
+            mlflow.log_metric("train_accuracy", acc, step=epoch_idx)
 
         if 'val_loss' in history.history:
             for epoch_idx, (val_loss, val_mae) in enumerate(
@@ -206,7 +207,7 @@ def evaluate_model(
     # Log to MLflow
     if mlflow.active_run():
         mlflow.log_metrics({
-            "average_accuracy": round(overall_accuracy * 100, 2),
+            "accuracy": round(overall_accuracy * 100, 2),  # was "average_accuracy"
             "error_margin_hz": error_margin,
             "test_mse": float(mse),
             "test_mae": float(mae),
