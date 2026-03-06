@@ -25,7 +25,7 @@ def configure_device() -> str:
     return "CPU"
 
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+    def __init__(self, margin=5.0, name='accuracy', **kwargs):
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
@@ -118,6 +118,22 @@ def train_model(
         # Log du modèle avec signature
         mlflow.tensorflow.log_model(model, "modele_vocal")
 
+    if mlflow.active_run():
+        mlflow.log_params({
+            "units": units,
+            "learning_rate": learning_rate,
+            "dropout_rate": dropout_rate,
+            "input_channels": in_shape[1]
+        })
+        for epoch_idx, (loss, mae, acc) in enumerate(
+            zip(history.history['loss'], history.history['mae'], history.history['accuracy'])
+        ):
+            mlflow.log_metric("train_loss", loss, step=epoch_idx)
+            mlflow.log_metric("train_mae", mae, step=epoch_idx)
+            mlflow.log_metric("train_accuracy", acc, step=epoch_idx)
+    
+        mlflow.tensorflow.log_model(model, "modele_vocal")
+
     return model
 
 def evaluate_model(
@@ -141,7 +157,7 @@ def evaluate_model(
     
     if mlflow.active_run():
         mlflow.log_metrics({
-            "test_accuracy_5hz": overall_accuracy,
+            "accuracy": round(overall_accuracy * 100, 2),
             "test_mae": float(mae)
         })
 

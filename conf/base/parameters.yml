@@ -27,17 +27,17 @@ training:
   error_margin: 5.0
 
 optuna:
-  n_trials: 30
-  metric: "val_accuracy_5hz"
+  n_trials: 300
+  metric: "val_accuracy"
   direction: "maximize"
   search_space:
-    units_min: 32
-    units_max: 256
+    units_min: 8
+    units_max: 1024
     learning_rate_min: 0.0001
     learning_rate_max: 0.01
     dropout_rate_min: 0.1
     dropout_rate_max: 0.5
-    batch_size_choices: [16, 32, 64]
+    batch_size_choices: [16, 32, 64, 128, 256, 512]
 
 training_vocal:
     units: 256              

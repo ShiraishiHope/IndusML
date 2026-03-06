@@ -44,7 +44,7 @@ def configure_device() -> str:
     return "CPU"
 
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, margin=5.0, name='accuracy_5hz', **kwargs):
+    def __init__(self, margin=5.0, name='accuracy', **kwargs):
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
@@ -145,11 +145,12 @@ def train_model(
 
     # Log training metrics
     if mlflow.active_run():
-        for epoch_idx, (loss, mae) in enumerate(
-            zip(history.history['loss'], history.history['mae'])
+        for epoch_idx, (loss, mae, acc) in enumerate(
+            zip(history.history['loss'], history.history['mae'], history.history['accuracy'])
         ):
             mlflow.log_metric("train_loss", loss, step=epoch_idx)
             mlflow.log_metric("train_mae", mae, step=epoch_idx)
+            mlflow.log_metric("train_accuracy", acc, step=epoch_idx)
 
         if 'val_loss' in history.history:
             for epoch_idx, (val_loss, val_mae) in enumerate(
@@ -206,7 +207,7 @@ def evaluate_model(
     # Log to MLflow
     if mlflow.active_run():
         mlflow.log_metrics({
-            "test_accuracy": overall_accuracy,
+            "accuracy": round(overall_accuracy * 100, 2),  # was "average_accuracy"
             "error_margin_hz": error_margin,
             "test_mse": float(mse),
             "test_mae": float(mae),
@@ -214,7 +215,7 @@ def evaluate_model(
         })
         for col, freq_metrics in per_frequency_metrics.items():
             freq_label = col.replace("after_exam_", "").replace("_Hz", "")
-            mlflow.log_metric(f"accuracy_{freq_label}", freq_metrics["accuracy"])
+            mlflow.log_metric(f"accuracy_{freq_label}_Hz", round(freq_metrics["accuracy"] * 100, 2))
             mlflow.log_metric(f"mse_{freq_label}", freq_metrics["mse"])
             mlflow.log_metric(f"mae_{freq_label}", freq_metrics["mae"])
             mlflow.log_metric(f"r2_{freq_label}", freq_metrics["r2"])
@@ -223,5 +224,5 @@ def evaluate_model(
         print(f">>> MLflow Run ID: {mlflow.active_run().info.run_id}")
         print(f">>> Load this model with: mlflow.tensorflow.load_model('runs:/{mlflow.active_run().info.run_id}/model')")
 
-    print(f"Model Performance - Accuracy (±{error_margin}Hz): {overall_accuracy:.2%}, MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
+    print(f"Model Performance - Average Accuracy (±{error_margin}Hz): {overall_accuracy * 100:.2f}%, MSE: {mse:.4f}, MAE: {mae:.4f}, R2: {r2:.4f}")
     return metrics
