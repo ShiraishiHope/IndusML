@@ -25,7 +25,7 @@ def configure_device() -> str:
     return "CPU"
 
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, margin=5.0, name='accuracy', **kwargs):
+    def __init__(self, margin=5.0, name='train_accuracy', **kwargs):
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
@@ -126,7 +126,7 @@ def train_model(
             "input_channels": in_shape[1]
         })
         for epoch_idx, (loss, mae, acc) in enumerate(
-            zip(history.history['loss'], history.history['mae'], history.history['accuracy'])
+            zip(history.history['loss'], history.history['mae'], history.history['train_accuracy'])
         ):
             mlflow.log_metric("train_loss", loss, step=epoch_idx)
             mlflow.log_metric("train_mae", mae, step=epoch_idx)

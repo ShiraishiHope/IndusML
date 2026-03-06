@@ -52,8 +52,6 @@ def optimize_hyperparameters(
             search_space.get("batch_size_choices", [16, 32, 64]),
         )
 
-        # Wrap model creation, training, AND manual logging
-        # inside the nested run so autologging targets THIS run
         if mlflow.active_run():
             with mlflow.start_run(nested=True, run_name=f"trial_{trial.number}"):
                 model = create_model(
@@ -64,10 +62,10 @@ def optimize_hyperparameters(
                 )
 
                 early_stopping = tf.keras.callbacks.EarlyStopping(
-                    monitor="val_accuracy",
-                    mode="max",
+                    monitor="val_loss",
+                    mode="min",
                     patience=5,
-                    restore_best_weights=True
+                    restore_best_weights=True,
                 )
 
                 history = model.fit(
@@ -80,7 +78,14 @@ def optimize_hyperparameters(
                     verbose=0,
                 )
 
-                best_val_accuracy = max(history.history["val_accuracy"])
+                best_val_loss = min(history.history["val_loss"])
+
+                # Log the accuracy too if it exists in history
+                best_accuracy = None
+                if "val_accuracy" in history.history:
+                    best_accuracy = max(history.history["val_accuracy"])
+                elif "accuracy" in history.history:
+                    best_accuracy = max(history.history["accuracy"])
 
                 mlflow.log_params({
                     "units": units,
@@ -88,11 +93,12 @@ def optimize_hyperparameters(
                     "dropout_rate": dropout_rate,
                     "batch_size": batch_size,
                 })
-                mlflow.log_metric("optuna_trial_accuracy", round(best_val_accuracy * 100, 2))
+                mlflow.log_metric("optuna_trial_val_loss", round(best_val_loss, 6))
+                if best_accuracy is not None:
+                    mlflow.log_metric("optuna_trial_accuracy", round(best_accuracy * 100, 2))
 
-                best_objective_value = best_val_accuracy
+                best_objective_value = best_val_loss
         else:
-            # Fallback if no active MLflow run
             model = create_model(
                 input_shape=input_shape,
                 units=units,
@@ -123,12 +129,12 @@ def optimize_hyperparameters(
     study.optimize(objective, n_trials=n_trials)
 
     best_params = study.best_params
-    best_params["optuna_best_accuracy"] = round(study.best_value * 100, 2)
+    best_params["optuna_best_val_loss"] = round(study.best_value, 6)
 
     logger.info("Optuna best parameters: %s", best_params)
 
     if mlflow.active_run():
         mlflow.log_params({f"optuna_best_{k}": v for k, v in study.best_params.items()})
-        mlflow.log_metric("optuna_best_accuracy", round(study.best_value * 100, 2))
+        mlflow.log_metric("optuna_best_val_loss", round(study.best_value, 6))
 
     return best_params
