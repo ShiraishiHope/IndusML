@@ -157,7 +157,7 @@ def evaluate_model(
     
     if mlflow.active_run():
         mlflow.log_metrics({
-            "accuracy": overall_accuracy,
+            "accuracy": round(overall_accuracy * 100, 2),
             "test_mae": float(mae)
         })
 
