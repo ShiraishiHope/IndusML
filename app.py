@@ -24,18 +24,24 @@ VOCAL_HISTORY_FILE = "data/01_raw/vocal_history.csv"
 VOCAL_INPUT_FILE   = "data/01_raw/vocal_inference_input.csv"
 VOCAL_OUTPUT_FILE  = "data/07_model_output/vocal_predictions.csv"
 
+# Niveaux d'intensité (doit correspondre exactement à l'entraînement)
 LEVELS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
 
+
 @app.route("/", methods=["GET"])
+@app.route("/interface", methods=["GET"])
 def index():
     return send_file("index.html")
 
-# --- TONAL ---
+
+# ─── PARTIE TONALE ────────────────────────────────────────────────────────────
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         content = request.get_json()
         data = content['data'][0] if 'data' in content else content
+
         df_full = pd.DataFrame([data])
 
         if not os.path.isfile(HISTORY_FILE):
@@ -50,60 +56,109 @@ def predict():
         df_inference.to_csv(INPUT_FILE, index=False)
 
         with KedroSession.create(project_path=project_path) as session:
-            session.run(pipeline_names=["inference"])
+            session.run(pipeline_name="inference")
 
         output = pd.read_csv('data/07_model_output/predictions.csv')
         return output.to_json(orient='records')
+
+    except Exception as e:
+        print(f"Erreur Tonal: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/history", methods=["GET"])
+def get_history():
+    try:
+        if os.path.exists(HISTORY_FILE):
+            df = pd.read_csv(HISTORY_FILE)
+            return df.tail(10).to_json(orient='records')
+        return jsonify([])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/train", methods=["POST"])
 def train():
     try:
         with KedroSession.create(project_path=project_path) as session:
-            session.run(pipeline_names=["train"]) # On utilise pipeline_names
+            session.run(pipeline_name="train")
         return jsonify({"message": "Ré-entraînement du modèle tonal terminé"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- VOCAL ---
+
+# ─── PARTIE VOCALE ────────────────────────────────────────────────────────────
+
 @app.route("/predict_vocal", methods=["POST"])
 def predict_vocal():
     try:
         content = request.get_json()
-        input_matrix = content["input"] # [[score, srt], ...]
-        
+
+        # Payload attendu depuis le front :
+        # { "input": [[score_0dB, srt], [score_5dB, srt], ..., [score_100dB, srt]] }
+        input_matrix = content["input"]  # liste (21, 2)
+
+        if len(input_matrix) != 21:
+            return jsonify({"error": f"21 niveaux attendus, {len(input_matrix)} reçus"}), 400
+
+        # ── Sauvegarde CSV pour Kedro ──────────────────────────────────
+        # On déplie la matrice en colonnes nommées pour le catalog Kedro
+        # Colonnes : score_0, score_5, ..., score_100, true_srt50
         scores = [row[0] for row in input_matrix]
-        srt50  = input_matrix[0][1]
+        srt50  = input_matrix[0][1]  # même valeur sur toutes les lignes
+
         row_dict = {f"score_{lvl}": scores[i] for i, lvl in enumerate(LEVELS)}
         row_dict["true_srt50"] = srt50
 
         df_input = pd.DataFrame([row_dict])
         df_input.to_csv(VOCAL_INPUT_FILE, index=False)
 
+        # ── Historique vocal ──────────────────────────────────────────
+        if not os.path.isfile(VOCAL_HISTORY_FILE):
+            df_input.to_csv(VOCAL_HISTORY_FILE, index=False)
+        else:
+            df_input.to_csv(VOCAL_HISTORY_FILE, mode='a', header=False, index=False)
+
+        # ── Pipeline Kedro ────────────────────────────────────────────
         with KedroSession.create(project_path=project_path) as session:
-            session.run(pipeline_names=["inference_vocal"])
+            session.run(pipeline_name="inference_vocal")
+
+        # ── Lecture du résultat ───────────────────────────────────────
+        if not os.path.exists(VOCAL_OUTPUT_FILE):
+            return jsonify({"error": "Fichier de sortie Kedro absent"}), 500
 
         output_df = pd.read_csv(VOCAL_OUTPUT_FILE)
-        return output_df.to_json(orient='records')
+
+        # Le CSV de sortie doit contenir 21 colonnes pred_0, pred_5, ..., pred_100
+        # (à adapter selon le nom que tu donnes dans ton node predict_vocal)
+        pred_cols = [f"pred_{lvl}" for lvl in LEVELS]
+
+        if all(c in output_df.columns for c in pred_cols):
+            predicted_scores = output_df[pred_cols].iloc[0].tolist()
+        else:
+            # Fallback : on prend les 21 premières colonnes numériques dans l'ordre
+            predicted_scores = output_df.iloc[0].tolist()
+
+        return jsonify({"predicted_scores": predicted_scores})
+
     except Exception as e:
+        print(f"Erreur Vocal: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/train_vocal", methods=["POST"])
 def train_vocal():
     try:
         with KedroSession.create(project_path=project_path) as session:
-            session.run(pipeline_names=["train_vocal"]) # Pipeline d'entraînement vocal
+            session.run(pipeline_name="train_vocal")
         return jsonify({"message": "Ré-entraînement du modèle vocal terminé"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/history", methods=["GET"])
-def get_history():
-    if os.path.exists(HISTORY_FILE):
-        df = pd.read_csv(HISTORY_FILE)
-        return df.tail(10).to_json(orient='records')
-    return jsonify([])
+
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:5000/")
 
 if __name__ == '__main__':
+    Timer(1, open_browser).start()
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -112,20 +112,9 @@
                         <div>
                             <div class="flex items-center justify-between mb-2">
                                 <label class="text-[10px] font-bold text-slate-400 uppercase">Scores d'intelligibilité (%) — 0 à 100 dB</label>
-                                <button type="button" id="clear-vocal-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-400 transition-colors uppercase">Effacer</button>
+                                <button type="button" id="clear-vocal-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-400 transition-colors uppercase" onclick="document.querySelectorAll('.vocal-grid input').forEach(i => i.value = '')">Effacer</button>
                             </div>
-                            <div class="flex items-center justify-between mb-2">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase">Scores d'intelligibilité (%) — 0 à 100 dB</label>
-                                <div class="flex gap-3">
-                                    <select id="vocal-profile-scaler" class="text-[9px] font-bold bg-slate-100 border-none rounded-md px-2 py-1 text-slate-600 outline-none cursor-pointer hover:bg-slate-200 transition-colors">
-                                        <option value="">PROFIL TYPE...</option>
-                                        <option value="excellent">Gain Excellent (Réussite)</option>
-                                        <option value="satisfaisant">Gain Satisfaisant (Moyen)</option>
-                                        <option value="insuffisant">Gain Insuffisant (Difficile)</option>
-                                    </select>
-                                    <button type="button" id="clear-vocal-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-400 transition-colors uppercase">Effacer</button>
-                                </div>
-                            </div>
+                            
                             <div class="vocal-grid" id="vocal-inputs"></div>
                         </div>
                         <button type="submit" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-all shadow-md">
@@ -155,27 +144,36 @@
                     </div>
                 </div>
 
-                <div id="vocal-display" class="hidden flex-col h-full items-center justify-center space-y-10">
-                    <h2 class="text-2xl font-bold text-slate-800">Résultat de l'Efficacité Vocale</h2>
-                    <div class="gain-badge">
-                        <span class="gain-label">Gain prédit</span>
-                        <span id="vocal-result-val" class="gain-value">—</span>
-                        <span class="gain-unit">dB</span>
+                <div id="vocal-display" class="hidden flex-col h-full space-y-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-lg font-bold text-slate-800">Courbe d'Intelligibilité Vocale</h2>
                     </div>
-                    <div class="w-full max-w-lg grid grid-cols-2 gap-4">
-                        <div class="metric-card">
-                            <div class="label">SRT sans appareil</div>
-                            <div class="value text-purple-600" id="display-srt-before">—</div>
-                            <div class="unit">dB</div>
+                    
+                    <div style="position: relative; width: 100%; height: 280px;">
+                        <canvas id="vocalChart"></canvas>
+                    </div>
+
+                    <div class="flex flex-row flex-wrap justify-around items-center w-full gap-4 mt-auto">
+                        <div class="gain-badge" style="width: 140px; height: 140px;">
+                            <span class="gain-label">Gain prédit</span>
+                            <span id="vocal-result-val" class="gain-value" style="font-size: 38px;">—</span>
+                            <span class="gain-unit">dB</span>
                         </div>
-                        <div class="metric-card">
-                            <div class="label">SRT avec appareil</div>
-                            <div class="value text-emerald-600" id="display-srt-after">—</div>
-                            <div class="unit">dB</div>
-                        </div>
-                        <div class="metric-card col-span-2 flex flex-col items-center justify-center">
-                            <div class="label">Interprétation de l'appareillage</div>
-                            <div id="display-interp" class="mt-2">—</div>
+                        <div class="w-full max-w-sm grid grid-cols-2 gap-3">
+                            <div class="metric-card">
+                                <div class="label">SRT Sans Appareil</div>
+                                <div class="value text-purple-600" id="display-srt-before">—</div>
+                                <div class="unit">dB</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="label">SRT Avec Appareil</div>
+                                <div class="value text-emerald-600" id="display-srt-after">—</div>
+                                <div class="unit">dB</div>
+                            </div>
+                            <div class="metric-card col-span-2 flex flex-col items-center justify-center py-2">
+                                <div class="label">Interprétation</div>
+                                <div id="display-interp" class="mt-1">—</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,6 +202,7 @@
         const LEVELS = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100];
 
         let tonalChart = null;
+        let vocalChart = null;
         let hasTonal   = false;
         let hasVocal   = false;
 
@@ -312,10 +311,60 @@
                 const predictedScores = data.predicted_scores || data[0] || [];
                 
                 updateVocalUI(scores, predictedScores, srt);
+                renderVocalChart(scores, predictedScores);
+                
                 hasVocal = true;
                 switchTab('vocal');
             } catch(err) { console.error(err); }
         };
+
+        function renderVocalChart(scoresBefore, scoresAfter) {
+            if (vocalChart) vocalChart.destroy();
+            const ctx = document.getElementById('vocalChart').getContext('2d');
+            
+            vocalChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: LEVELS,
+                    datasets: [
+                        { 
+                            label: 'Sans Appareil', 
+                            data: scoresBefore, 
+                            borderColor: '#9333ea', 
+                            backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                            tension: 0.4, 
+                            pointRadius: 4,
+                            fill: true
+                        },
+                        { 
+                            label: 'Prédit (Avec Appareil)', 
+                            data: scoresAfter, 
+                            borderColor: '#10b981', 
+                            tension: 0.4, 
+                            borderDash: [6,4], 
+                            pointRadius: 4 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Intensité (dB)', color: '#94a3b8', font: {size: 10, weight: 'bold'} } 
+                        },
+                        y: { 
+                            min: 0, 
+                            max: 100, 
+                            title: { display: true, text: 'Intelligibilité (%)', color: '#94a3b8', font: {size: 10, weight: 'bold'} } 
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, font: {size: 11, weight: 'bold'} } }
+                    }
+                }
+            });
+        }
 
         function computeSRT50(levels, scores) {
             for (let i = 0; i < scores.length - 1; i++) {
@@ -403,40 +452,6 @@
         };
 
         checkStatus();
-        // --- SCÉNARIOS POUR LA PRÉSENTATION ---
-const SCENARIOS = {
-    excellent: {
-        srt: 15,
-        scores: [0, 2, 4, 6, 10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 92, 96, 100, 100, 100, 100]
-    },
-    satisfaisant: {
-        srt: 30,
-        scores: [0, 0, 5, 10, 10, 15, 20, 25, 25, 30, 32, 45, 50, 50, 60, 43, 35, 67, 45, 68, 80]
-    },
-    insuffisant: {
-        srt: 45,
-        scores: [0, 0, 0, 0, 5, 10, 10, 15, 20, 25, 25, 30, 32, 45, 50, 50, 60, 43, 35, 67, 45]
-    }
-}
-
-document.getElementById('vocal-profile-scaler').onchange = (e) => {
-    const profile = SCENARIOS[e.target.value];
-    if (!profile) return;
-
-    // Charger le SRT
-    document.getElementById('srt_db').value = profile.srt;
-
-    // Charger les 21 scores
-    LEVELS.forEach((db, index) => {
-        const input = document.getElementById(`v${db}`);
-        if (input) {
-            input.value = profile.scores[index];
-            // Petit effet visuel de flash pour montrer que ça a chargé
-            input.classList.add('bg-purple-50');
-            setTimeout(() => input.classList.remove('bg-purple-50'), 500);
-        }
-    });
-}
     </script>
 </body>
 </html>
