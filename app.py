@@ -35,31 +35,41 @@ def index():
 def predict():
     try:
         content = request.get_json()
-        # Gestion du format de données (direct ou enveloppé)
+        # On récupère les données (format {data: [payload]})
         data = content['data'][0] if 'data' in content else content
         
-        # On crée le DataFrame avec les nouvelles colonnes d'identité
-        df_input = pd.DataFrame([data])
-        
-        # Sauvegarde pour Kedro (sans Nom/Prénom pour ne pas perturber le modèle)
-        cols_model = [c for c in df_input.columns if "before" in c]
-        df_input[cols_model].to_csv(INPUT_FILE, index=False)
-        
-        # Sauvegarde dans l'historique global (AVEC Nom/Prénom)
+        # 1. On crée le DataFrame complet (Identité + Mesures)
+        df_full = pd.DataFrame([data])
+
+        # 2. Sauvegarde dans l'HISTORIQUE (On garde tout : Nom, Prénom, Mesures)
         if not os.path.isfile(HISTORY_FILE):
-            df_input.to_csv(HISTORY_FILE, index=False)
+            # Si le fichier n'existe pas, on le crée avec les en-têtes
+            df_full.to_csv(HISTORY_FILE, index=False)
         else:
-            df_input.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
+            # S'il existe, on ajoute à la suite SANS réécrire l'en-tête
+            # On s'assure de l'ordre des colonnes pour ne pas décaler le CSV
+            df_history = pd.read_csv(HISTORY_FILE)
+            df_full = df_full.reindex(columns=df_history.columns) # Aligne les colonnes
+            df_full.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
+
+        # 3. Sauvegarde pour l'INFÉRENCE KEDRO (On ne garde QUE les chiffres)
+        # On filtre pour ne garder que les colonnes qui commencent par 'before_exam'
+        cols_inference = [c for c in df_full.columns if "before_exam" in c]
+        df_inference = df_full[cols_inference]
+        df_inference.to_csv(INPUT_FILE, index=False)
         
+        # 4. Exécution Kedro
         with KedroSession.create(project_path=project_path) as session:
             session.run(pipeline_name="inference")
             
         output = pd.read_csv('data/07_model_output/predictions.csv')
         return output.to_json(orient='records') 
+
     except Exception as e:
+        print(f"Erreur Tonal: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
-    
+
 @app.route("/history", methods=["GET"])
 def get_history():
     try:

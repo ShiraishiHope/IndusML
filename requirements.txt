@@ -4,6 +4,6 @@ notebook
 kedro~=1.2.0
 kedro-datasets[pandas,tensorflow]
 mlflow
-tensorflow-cpu;
+tensorflow;
 tensorflow-metal; sys_platform == "darwin"
 optuna

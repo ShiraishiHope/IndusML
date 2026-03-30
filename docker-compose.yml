@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  audio-api:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistance de l'historique (Patient, Nom, Prénom)
+      - ./data/01_raw:/app/data/01_raw
+      # Persistance des modèles (Tonal et Vocal) après entraînement
+      - ./data/06_models:/app/data/06_models
+      # Persistance des derniers résultats de prédiction
+      - ./data/07_model_output:/app/data/07_model_output
+    environment:
+      - FLASK_ENV=development

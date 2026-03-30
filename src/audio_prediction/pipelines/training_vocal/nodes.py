@@ -9,8 +9,42 @@ import mlflow.tensorflow
 import platform
 import logging
 
+# Import indispensable pour Keras 3
+from keras.saving import register_keras_serializable
+
 logger = logging.getLogger(__name__)
 
+# --- 1. DÉFINITION UNIQUE ET ENREGISTRÉE DE LA MÉTRIQUE ---
+@register_keras_serializable(package="CustomMetrics")
+class WithinMarginAccuracy(tf.keras.metrics.Metric):
+    def __init__(self, margin=5.0, name='train_accuracy', **kwargs):
+        # On s'assure que margin est bien passé dans kwargs pour la sérialisation
+        super().__init__(name=name, **kwargs)
+        self.margin = margin
+        self.total_within = self.add_weight(name='total_within', initializer='zeros')
+        self.total_count = self.add_weight(name='total_count', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        within = tf.cast(tf.abs(y_true - y_pred) <= self.margin, tf.float32)
+        self.total_within.assign_add(tf.reduce_sum(within))
+        self.total_count.assign_add(tf.cast(tf.size(within), tf.float32))
+
+    def result(self):
+        return self.total_within / self.total_count
+
+    def reset_state(self):
+        self.total_within.assign(0.0)
+        self.total_count.assign(0.0)
+
+    # Indispensable pour que Keras puisse recharger les paramètres (margin)
+    def get_config(self):
+        config = super().get_config()
+        config.update({"margin": self.margin})
+        return config
+
+# --- 2. CONFIGURATION DEVICE ---
 def configure_device() -> str:
     """Configure TensorFlow pour le GPU du Mac M1."""
     gpus = tf.config.list_physical_devices('GPU')
@@ -24,52 +58,29 @@ def configure_device() -> str:
             pass
     return "CPU"
 
-class WithinMarginAccuracy(tf.keras.metrics.Metric):
-    def __init__(self, margin=5.0, name='train_accuracy', **kwargs):
-        super().__init__(name=name, **kwargs)
-        self.margin = margin
-        self.total_within = self.add_weight(name='total_within', initializer='zeros')
-        self.total_count = self.add_weight(name='total_count', initializer='zeros')
-
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        within = tf.cast(tf.abs(y_true - y_pred) <= self.margin, tf.float32)
-        self.total_within.assign_add(tf.reduce_sum(within))
-        self.total_count.assign_add(tf.cast(tf.size(within), tf.float32))
-
-    def result(self):
-        return self.total_within / self.total_count
-
-    def reset_state(self):
-        self.total_within.assign(0.0)
-        self.total_count.assign(0.0)
-
+# --- 3. CRÉATION DU MODÈLE ---
 def create_vocal_model(input_shape=(21, 2), learning_rate=1e-3, units=128, dropout_rate=0.2):
-    """
-    Architecture CNN adaptée pour 2 canaux d'entrée : [Score Vocal, Catégorie].
-    """
     model = tf.keras.Sequential([
-        # On passe de (21, 1) à (21, 2) ici
         layers.Input(shape=input_shape),
-        
         layers.Conv1D(32, kernel_size=3, activation='relu', padding='same'),
         layers.MaxPooling1D(pool_size=2, padding='same'),
-        
         layers.Conv1D(64, kernel_size=3, activation='relu', padding='same'),
         layers.Flatten(),
-        
         layers.Dense(units, activation='relu'),
         layers.Dropout(dropout_rate),
         layers.Dense(32, activation='relu'),
-        
         layers.Dense(21, activation='linear') 
     ])
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss="mse",
+        # On utilise notre classe enregistrée
         metrics=['mae', WithinMarginAccuracy(margin=5.0)]
     )
     return model
+
+# ... (le reste de ton code train_model et evaluate_model est correct)
 
 def train_model(
     X_train: np.ndarray,
