@@ -1,75 +1,59 @@
 """
-Nodes pour l'inférence avec le modèle CNN.
+Pipeline d'inférence vocal — nodes.py
+src/audio_prediction/pipelines/inference_vocal/nodes.py
 """
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from typing import Dict, Any, List, Tuple
+from typing import List
+
+# Doit être identique à l'ordre utilisé pendant l'entraînement
+LEVELS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
 
 
-def validate_prediction_input(
-    df: pd.DataFrame,
-    input_columns: List[str]
-) -> Tuple[pd.DataFrame, List[Dict[str, Any]]]:
+def prepare_vocal_input(df: pd.DataFrame) -> np.ndarray:
     """
-    Valide les données d'entrée pour la prédiction.
+    Transforme le DataFrame d'entrée en array numpy (1, 21, 2).
+
+    Le CSV vocal_inference_input.csv contient :
+      - score_0, score_5, ..., score_100  → canal 0 (recognition_score)
+      - true_srt50                         → canal 1 (répété sur 21 timesteps)
+
+    Retourne un array de shape (1, 21, 2).
     """
-    errors = []
-    valid_indices = []
-    
-    missing_cols = [col for col in input_columns if col not in df.columns]
-    if missing_cols:
-        return pd.DataFrame(), [{"error": f"Colonnes manquantes: {missing_cols}"}]
-    
-    for idx, row in df.iterrows():
-        row_errors = []
-        is_valid = True
-        
-        for col in input_columns:
-            value = row[col]
-            
-            if pd.isna(value):
-                row_errors.append(f"{col}: valeur manquante")
-                is_valid = False
-            elif isinstance(value, str):
-                row_errors.append(f"{col}: valeur non numérique '{value}'")
-                is_valid = False
-            else:
-                try:
-                    num_val = float(value)
-                    if num_val < -20 or num_val > 150:
-                        row_errors.append(f"{col}: hors limites ({num_val})")
-                        is_valid = False
-                except (ValueError, TypeError):
-                    row_errors.append(f"{col}: conversion impossible")
-                    is_valid = False
-        
-        if is_valid:
-            valid_indices.append(idx)
-        else:
-            errors.append({"row_index": int(idx), "errors": row_errors})
-    
-    valid_df = df.loc[valid_indices, input_columns].copy()
-    for col in input_columns:
-        valid_df[col] = pd.to_numeric(valid_df[col])
-    
-    return valid_df, errors
+    score_cols = [f"score_{lvl}" for lvl in LEVELS]
+
+    # Vérification des colonnes
+    missing = [c for c in score_cols + ["true_srt50"] if c not in df.columns]
+    if missing:
+        raise ValueError(f"Colonnes manquantes dans vocal_inference_input : {missing}")
+
+    scores = df[score_cols].values.astype(np.float32)           # (1, 21)
+    srt50  = df["true_srt50"].values.astype(np.float32)         # (1,)
+
+    # Répéter srt50 sur les 21 timesteps → (1, 21)
+    srt50_repeated = np.repeat(srt50[:, np.newaxis], len(LEVELS), axis=1)
+
+    # Stack sur l'axe canal → (1, 21, 2)
+    X = np.stack([scores, srt50_repeated], axis=-1)
+
+    return X
 
 
-def predict(
-    model: tf.keras.Model,
-    X: pd.DataFrame,
-    output_columns: List[str]
-) -> pd.DataFrame:
+def predict_vocal(model: tf.keras.Model, X: np.ndarray) -> pd.DataFrame:
     """
-    Effectue les prédictions avec le modèle CNN.
+    Effectue la prédiction avec le CNN vocal.
+
+    Entrée  : X de shape (1, 21, 2)
+    Sortie  : DataFrame avec colonnes pred_0, pred_5, ..., pred_100
     """
-    if X.empty:
-        return pd.DataFrame(columns=output_columns)
-    
-    # Reshape pour Conv1D: (samples, 7, 1)
-    X_array = X.values.astype(np.float32)
-    X_cnn = X_array.reshape((X_array.shape[0], X_array.shape[1], 1))
-    
-    predictions = model.predict(X_cnn)
-    return pd.DataFrame(predictions, columns=output_columns, index=X.index)
+    # predictions shape : (1, 21)
+    predictions = model.predict(X)
+
+    pred_cols = [f"pred_{lvl}" for lvl in LEVELS]
+    df_output = pd.DataFrame(predictions, columns=pred_cols)
+
+    # Clip entre 0 et 100 — scores d'intelligibilité
+    df_output = df_output.clip(0, 100)
+
+    return df_output

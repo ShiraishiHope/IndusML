@@ -1,2 +1,2 @@
-oreille,srt_db,score_40db,score_60db,score_80db
-Gauche,30,70,90,100
+score_0,score_5,score_10,score_15,score_20,score_25,score_30,score_35,score_40,score_45,score_50,score_55,score_60,score_65,score_70,score_75,score_80,score_85,score_90,score_95,score_100,true_srt50
+0,0,0,0,5,10,10,15,20,25,25,30,32,45,50,50,60,43,35,67,45,45

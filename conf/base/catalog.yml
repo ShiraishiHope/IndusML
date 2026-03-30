@@ -113,3 +113,13 @@ vocal_model:
   filepath: data/06_models/vocal_model.keras
   save_args:
     save_format: keras
+
+# L'entrée pour l'inférence (générée par ton app.py)
+vocal_inference_input:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/vocal_inference_input.csv
+
+# La sortie de la prédiction
+vocal_predictions:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/vocal_predictions.csv

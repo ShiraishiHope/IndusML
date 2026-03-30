@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BonneEcoute - Analyse de Test Tonal et Vocal</title>
+    <title>BonneEcoute - Analyse Audiométrique</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -13,109 +13,123 @@
         .history-item:hover { border-left-color: #3b82f6; background-color: #f1f5f9; transform: translateX(2px); }
         #history-list::-webkit-scrollbar { width: 4px; }
         #history-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .vocal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .vocal-grid .cell label {
+            display: block; font-size: 9px; font-weight: 700;
+            color: #94a3b8; text-align: center; text-transform: uppercase; margin-bottom: 3px;
+        }
+        .vocal-grid .cell input {
+            width: 100%; padding: 5px 2px; border: 1px solid #e2e8f0;
+            border-radius: 8px; text-align: center; font-size: 12px;
+            font-weight: 700; color: #334155; outline: none; transition: border-color 0.15s;
+        }
+        .vocal-grid .cell input:focus { border-color: #7c3aed; }
+
+        .metric-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; text-align: center; }
+        .metric-card .label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 4px; }
+        .metric-card .value { font-size: 26px; font-weight: 800; line-height: 1; }
+        .metric-card .unit  { font-size: 11px; font-weight: 600; color: #94a3b8; margin-top: 2px; }
+
+        .gain-badge {
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+            border-radius: 50%; width: 180px; height: 180px;
+            color: white; box-shadow: 0 12px 40px rgba(124,58,237,0.3); flex-shrink: 0;
+        }
+        .gain-badge .gain-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.8; }
+        .gain-badge .gain-value { font-size: 56px; font-weight: 900; line-height: 1; margin: 4px 0; }
+        .gain-badge .gain-unit  { font-size: 18px; font-weight: 700; opacity: 0.8; }
+
+        .interp-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+        .interp-good   { background: #dcfce7; color: #166534; }
+        .interp-medium { background: #fef9c3; color: #854d0e; }
+        .interp-poor   { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <header class="bg-blue-900 text-white p-4 shadow-md flex justify-between items-center px-8">
         <div class="flex items-center gap-3">
-            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
-            </svg>
             <h1 class="text-xl font-black tracking-tighter uppercase">BONNE<span class="text-blue-400">ECOUTE</span></h1>
         </div>
-        <div id="api-status-badge" class="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 uppercase tracking-widest text-yellow-500">
+        <div id="api-status-badge" class="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 uppercase text-yellow-500">
             API: Vérification...
         </div>
     </header>
 
     <main class="flex-grow grid lg:grid-cols-12 gap-6 p-6 max-w-7xl mx-auto w-full">
-        
+
         <div class="lg:col-span-5 flex flex-col gap-6">
-            
             <div class="flex space-x-2 bg-slate-200/50 p-1.5 rounded-2xl">
-                <button id="tab-tonal" class="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-blue-600 shadow-sm transition-all">
-                    Audiométrie Tonale
-                </button>
-                <button id="tab-vocal" class="flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 hover:text-purple-600 transition-all">
-                    Audiométrie Vocale
-                </button>
+                <button id="tab-tonal" class="flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-blue-600 shadow-sm transition-all">Analyse Tonale</button>
+                <button id="tab-vocal" class="flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 hover:text-purple-600 transition-all">Analyse Vocale</button>
             </div>
 
             <div id="panel-tonal" class="space-y-6">
                 <section class="glass rounded-3xl shadow-sm border border-slate-200 p-8">
                     <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span class="p-2 bg-blue-100 text-blue-600 rounded-lg text-xs">T</span>
-                        Mesures Audiométriques (Tonal)
+                        <span class="p-2 bg-blue-100 text-blue-600 rounded-lg text-xs font-black">T</span> Mesures Tonales
                     </h2>
-
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase">Prénom</label>
-                                <input type="text" id="prenom" placeholder="Jean" class="w-full mt-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase">Nom</label>
-                                <input type="text" id="nom" placeholder="Dupont" class="w-full mt-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                            </div>
+                            <input type="text" id="prenom" placeholder="Prénom" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="nom"    placeholder="Nom"    class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
-
                         <div class="grid grid-cols-4 gap-3">
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">125 Hz</label><input type="number" id="f125" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">250 Hz</label><input type="number" id="f250" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">500 Hz</label><input type="number" id="f500" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">1k Hz</label><input type="number" id="f1k" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">2k Hz</label><input type="number" id="f2k" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">4k Hz</label><input type="number" id="f4k" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
-                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">8k Hz</label><input type="number" id="f8k" class="w-full p-2 border rounded-lg text-center font-bold focus:border-blue-500 outline-none"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">125</label><input type="number" id="f125" class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">250</label><input type="number" id="f250" class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">500</label><input type="number" id="f500" class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">1k</label><input type="number"  id="f1k"  class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">2k</label><input type="number"  id="f2k"  class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">4k</label><input type="number"  id="f4k"  class="w-full p-2 border rounded-lg text-center font-bold"></div>
+                            <div><label class="text-[9px] font-bold text-slate-400 uppercase">8k</label><input type="number"  id="f8k"  class="w-full p-2 border rounded-lg text-center font-bold"></div>
                         </div>
-
-                        <button id="predict-btn" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg hover:bg-blue-700 transition-all active:scale-95">
-                            Lancer l'Analyse Tonale
-                        </button>
+                        <button id="predict-btn" class="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition-all shadow-md">Lancer l'Audiogramme</button>
                     </div>
                 </section>
-
-                <section class="glass rounded-3xl shadow-sm border border-slate-200 p-6">
-                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex justify-between items-center">
-                        Journal des patients
-                        <button onclick="fetchHistory()" class="text-blue-500 text-[10px] hover:underline font-black">ACTUALISER</button>
-                    </h3>
-                    <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+                <section class="glass rounded-3xl shadow-sm border p-6">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Journal Patients</h3>
+                    <div id="history-list" class="space-y-2 max-h-40 overflow-y-auto pr-2"></div>
                 </section>
             </div>
 
             <div id="panel-vocal" class="hidden space-y-6">
-                <section class="glass rounded-3xl shadow-sm border border-slate-200 p-8">
-                    <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span class="p-2 bg-purple-100 text-purple-600 rounded-lg text-xs">V</span>
-                        Test d'Audition Vocale
+                <section class="glass rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+                        <span class="p-2 bg-purple-100 text-purple-600 rounded-lg text-xs font-black">V</span> Mesures Vocales
                     </h2>
-                
-                    <form id="vocal-form" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase">Oreille</label>
-                                <select id="oreille-vocal" class="w-full mt-1 px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-purple-500">
-                                    <option value="Droite">Droite</option>
-                                    <option value="Gauche">Gauche</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-slate-400 uppercase">Seuil SRT (dB)</label>
-                                <input type="number" id="srt_db" placeholder="dB" class="w-full mt-1 px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-purple-500" required>
-                            </div>
+                    <form id="vocal-form" class="space-y-5">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Seuil SRT mesuré (dB)</label>
+                            <input type="number" id="srt_db" placeholder="ex: 35" step="0.1"
+                                class="w-full px-4 py-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-purple-500 font-bold text-slate-700" required>
                         </div>
-                
-                        <div class="grid grid-cols-3 gap-3">
-                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">40 dB (%)</label><input type="number" id="s40" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-purple-500"></div>
-                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">60 dB (%)</label><input type="number" id="s60" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-purple-500"></div>
-                            <div><label class="text-[10px] font-bold text-slate-400 uppercase">80 dB (%)</label><input type="number" id="s80" class="w-full mt-1 p-2 border rounded-lg text-center font-bold focus:border-purple-500"></div>
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">Scores d'intelligibilité (%) — 0 à 100 dB</label>
+                                <button type="button" id="clear-vocal-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-400 transition-colors uppercase">Effacer</button>
+                            </div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">Scores d'intelligibilité (%) — 0 à 100 dB</label>
+                                <div class="flex gap-3">
+                                    <select id="vocal-profile-scaler" class="text-[9px] font-bold bg-slate-100 border-none rounded-md px-2 py-1 text-slate-600 outline-none cursor-pointer hover:bg-slate-200 transition-colors">
+                                        <option value="">PROFIL TYPE...</option>
+                                        <option value="excellent">Gain Excellent (Réussite)</option>
+                                        <option value="satisfaisant">Gain Satisfaisant (Moyen)</option>
+                                        <option value="insuffisant">Gain Insuffisant (Difficile)</option>
+                                    </select>
+                                    <button type="button" id="clear-vocal-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-400 transition-colors uppercase">Effacer</button>
+                                </div>
+                            </div>
+                            <div class="vocal-grid" id="vocal-inputs"></div>
                         </div>
-                
-                        <button type="submit" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl shadow-lg hover:bg-purple-700 transition-all active:scale-95">
-                            Prédire le Gain Vocal
+                        <button type="submit" class="w-full py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-all shadow-md">
+                            Calculer le Gain Prothétique
                         </button>
                     </form>
                 </section>
@@ -123,67 +137,232 @@
         </div>
 
         <div class="lg:col-span-7">
-            <div class="glass rounded-3xl shadow-sm border border-slate-200 p-8 h-full flex flex-col">
-                <h2 id="chart-title" class="text-lg font-bold text-slate-800 mb-6">Simulation Audiométrique</h2>
-                
-                <div id="chart-placeholder" class="flex-grow flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 p-10 text-center italic">
-                    <p>En attente de mesures pour visualiser l'analyse.</p>
-                </div>
-                
-                <div id="chart-container" class="hidden flex-grow relative min-h-[450px] w-full">
-                    <canvas id="mainChart"></canvas>
+            <div class="glass rounded-3xl shadow-sm border border-slate-200 p-8 h-full flex flex-col min-h-[500px]">
+
+                <div id="empty-state" class="flex-1 flex flex-col items-center justify-center opacity-30">
+                    <svg class="w-20 h-20 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <p class="font-bold uppercase tracking-widest text-slate-500">En attente de mesures</p>
                 </div>
 
-                <div id="result-badge" class="hidden mt-6 p-4 rounded-2xl border text-center font-bold"></div>
-
-                <div class="mt-6 flex justify-between items-center bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Moteur Kedro</span>
-                        <span class="text-xs font-black text-slate-700">CNN Model v1.0</span>
+                <div id="tonal-display" class="hidden flex-col h-full">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-800">Audiogramme Tonal</h2>
                     </div>
-                    <button id="train-btn" class="text-[10px] font-black uppercase bg-slate-800 text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all shadow-md">Ré-entraîner</button>
+                    <div style="position: relative; width: 100%; height: 400px;">
+                        <canvas id="tonalChart"></canvas>
+                    </div>
                 </div>
+
+                <div id="vocal-display" class="hidden flex-col h-full items-center justify-center space-y-10">
+                    <h2 class="text-2xl font-bold text-slate-800">Résultat de l'Efficacité Vocale</h2>
+                    <div class="gain-badge">
+                        <span class="gain-label">Gain prédit</span>
+                        <span id="vocal-result-val" class="gain-value">—</span>
+                        <span class="gain-unit">dB</span>
+                    </div>
+                    <div class="w-full max-w-lg grid grid-cols-2 gap-4">
+                        <div class="metric-card">
+                            <div class="label">SRT sans appareil</div>
+                            <div class="value text-purple-600" id="display-srt-before">—</div>
+                            <div class="unit">dB</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">SRT avec appareil</div>
+                            <div class="value text-emerald-600" id="display-srt-after">—</div>
+                            <div class="unit">dB</div>
+                        </div>
+                        <div class="metric-card col-span-2 flex flex-col items-center justify-center">
+                            <div class="label">Interprétation de l'appareillage</div>
+                            <div id="display-interp" class="mt-2">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-6 flex justify-between items-center bg-slate-50/80 -mx-8 -mb-8 p-6 rounded-b-3xl border-t border-slate-100">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Moteur Kedro</span>
+                        <span class="text-xs font-black text-slate-600">CNN Model v1.2</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="train-tonal-btn" class="text-[10px] font-black uppercase bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95">
+                            Entraîner Tonal
+                        </button>
+                        <button id="train-vocal-btn" class="text-[10px] font-black uppercase bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl transition-all shadow-md active:scale-95">
+                            Entraîner Vocal
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
-
     </main>
 
     <script>
         const API = "http://127.0.0.1:5000";
-        let mainChart = null;
+        const LEVELS = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100];
 
-        // --- NAVIGATION ---
-        const tabTonal = document.getElementById('tab-tonal');
-        const tabVocal = document.getElementById('tab-vocal');
-        const panelTonal = document.getElementById('panel-tonal');
-        const panelVocal = document.getElementById('panel-vocal');
-        const chartTitle = document.getElementById('chart-title');
+        let tonalChart = null;
+        let hasTonal   = false;
+        let hasVocal   = false;
 
-        tabTonal.addEventListener('click', () => {
-            tabTonal.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-blue-600 shadow-sm transition-all";
-            tabVocal.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 transition-all";
-            panelTonal.classList.remove('hidden');
-            panelVocal.classList.add('hidden');
-            chartTitle.innerText = "Audiogramme Tonal";
-            resetVisuals();
+        // Génération inputs vocaux
+        const vocalGrid = document.getElementById('vocal-inputs');
+        LEVELS.forEach(db => {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.innerHTML = `<label>${db} dB</label><input type="number" id="v${db}" min="0" max="100" step="0.1" placeholder="0">`;
+            vocalGrid.appendChild(cell);
         });
 
-        tabVocal.addEventListener('click', () => {
-            tabVocal.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-purple-600 shadow-sm transition-all";
-            tabTonal.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 transition-all";
-            panelVocal.classList.remove('hidden');
-            panelTonal.classList.add('hidden');
-            chartTitle.innerText = "Courbe d'Intelligibilité Vocale";
-            resetVisuals();
-        });
-
-        function resetVisuals() {
-            document.getElementById('chart-container').classList.add('hidden');
-            document.getElementById('chart-placeholder').classList.remove('hidden');
-            document.getElementById('result-badge').classList.add('hidden');
+        function switchTab(mode) {
+            const tabT = document.getElementById('tab-tonal');
+            const tabV = document.getElementById('tab-vocal');
+            if (mode === 'tonal') {
+                tabT.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-blue-600 shadow-sm transition-all";
+                tabV.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 hover:text-purple-600 transition-all";
+                document.getElementById('panel-tonal').classList.remove('hidden');
+                document.getElementById('panel-vocal').classList.add('hidden');
+            } else {
+                tabV.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold bg-white text-purple-600 shadow-sm transition-all";
+                tabT.className = "flex-1 py-3 px-4 rounded-xl text-sm font-bold text-slate-500 hover:text-blue-600 transition-all";
+                document.getElementById('panel-vocal').classList.remove('hidden');
+                document.getElementById('panel-tonal').classList.add('hidden');
+            }
+            updateRightPanel(mode);
         }
 
-        // --- STATUT API & HISTORIQUE ---
+        function updateRightPanel(mode) {
+            const empty    = document.getElementById('empty-state');
+            const tDisplay = document.getElementById('tonal-display');
+            const vDisplay = document.getElementById('vocal-display');
+            empty.classList.add('hidden');
+            tDisplay.classList.add('hidden');
+            vDisplay.classList.add('hidden');
+            if (mode === 'tonal' && hasTonal) {
+                tDisplay.classList.remove('hidden'); tDisplay.classList.add('flex');
+            } else if (mode === 'vocal' && hasVocal) {
+                vDisplay.classList.remove('hidden'); vDisplay.classList.add('flex');
+            } else {
+                empty.classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('tab-tonal').onclick = () => switchTab('tonal');
+        document.getElementById('tab-vocal').onclick = () => switchTab('vocal');
+
+        // TONAL (Avec courbe)
+        document.getElementById('predict-btn').onclick = async () => {
+            const before = {
+                before_exam_125_Hz:  parseFloat(document.getElementById('f125').value) || 0,
+                before_exam_250_Hz:  parseFloat(document.getElementById('f250').value) || 0,
+                before_exam_500_Hz:  parseFloat(document.getElementById('f500').value) || 0,
+                before_exam_1000_Hz: parseFloat(document.getElementById('f1k').value)  || 0,
+                before_exam_2000_Hz: parseFloat(document.getElementById('f2k').value)  || 0,
+                before_exam_4000_Hz: parseFloat(document.getElementById('f4k').value)  || 0,
+                before_exam_8000_Hz: parseFloat(document.getElementById('f8k').value)  || 0,
+                prenom: document.getElementById('prenom').value,
+                nom:    document.getElementById('nom').value
+            };
+            try {
+                const res = await fetch(API + "/predict", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ data: [before] })
+                });
+                const data = await res.json();
+                renderTonalChart(before, data[0]);
+                hasTonal = true;
+                switchTab('tonal');
+            } catch(err) { console.error(err); }
+        };
+
+        function renderTonalChart(before, after) {
+            if (tonalChart) tonalChart.destroy();
+            const ctx = document.getElementById('tonalChart').getContext('2d');
+            tonalChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['125','250','500','1k','2k','4k','8k'],
+                    datasets: [
+                        { label: 'Sans Appareil', data: [before.before_exam_125_Hz, before.before_exam_250_Hz, before.before_exam_500_Hz, before.before_exam_1000_Hz, before.before_exam_2000_Hz, before.before_exam_4000_Hz, before.before_exam_8000_Hz], borderColor: '#3b82f6', tension: 0.3, pointRadius: 5 },
+                        { label: 'Prédit', data: [after.after_exam_125_Hz, after.after_exam_250_Hz, after.after_exam_500_Hz, after.after_exam_1000_Hz, after.after_exam_2000_Hz, after.after_exam_4000_Hz, after.after_exam_8000_Hz], borderColor: '#10b981', tension: 0.3, borderDash: [6,4], pointRadius: 5 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { reverse: true, min: -10, max: 120 } }
+                }
+            });
+        }
+
+        // VOCAL
+        document.getElementById('vocal-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const srt    = parseFloat(document.getElementById('srt_db').value);
+            const scores = LEVELS.map(db => parseFloat(document.getElementById(`v${db}`).value) || 0);
+            const inputMatrix = scores.map(score => [score, srt]);
+
+            try {
+                const res = await fetch(API + "/predict_vocal", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ input: inputMatrix })
+                });
+                const data = await res.json();
+                const predictedScores = data.predicted_scores || data[0] || [];
+                
+                updateVocalUI(scores, predictedScores, srt);
+                hasVocal = true;
+                switchTab('vocal');
+            } catch(err) { console.error(err); }
+        };
+
+        function computeSRT50(levels, scores) {
+            for (let i = 0; i < scores.length - 1; i++) {
+                if (scores[i] <= 50 && scores[i + 1] >= 50) {
+                    const t = (50 - scores[i]) / (scores[i + 1] - scores[i]);
+                    return levels[i] + t * (levels[i + 1] - levels[i]);
+                }
+            }
+            return null;
+        }
+
+        function updateVocalUI(scoresBefore, scoresAfter, srt) {
+            const srt5Before = computeSRT50(LEVELS, scoresBefore) ?? srt;
+            const srt5After  = computeSRT50(LEVELS, scoresAfter);
+            const gain = srt5After !== null ? (srt5Before - srt5After) : 0;
+
+            document.getElementById('vocal-result-val').textContent = gain.toFixed(1);
+            document.getElementById('display-srt-before').textContent = srt5Before.toFixed(1);
+            document.getElementById('display-srt-after').textContent = srt5After !== null ? srt5After.toFixed(1) : '—';
+
+            const interp = gain >= 15 ? {t:'Excellent', c:'interp-good'} : (gain >= 8 ? {t:'Satisfaisant', c:'interp-medium'} : {t:'Insuffisant', c:'interp-poor'});
+            document.getElementById('display-interp').innerHTML = `<span class="interp-badge ${interp.c}">${interp.t}</span>`;
+        }
+
+        // --- ENTRAÎNEMENT ---
+        async function runTraining(endpoint, btnId, label) {
+            if(!confirm(`Lancer l'entraînement ${label} ? Cela peut prendre plusieurs minutes.`)) return;
+            const btn = document.getElementById(btnId);
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Calcul...";
+            
+            try {
+                const res = await fetch(API + endpoint, { method: 'POST' });
+                const data = await res.json();
+                alert(data.message || data.error);
+            } catch(e) { 
+                alert("Erreur de connexion à l'API"); 
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
+
+        document.getElementById('train-tonal-btn').onclick = () => runTraining("/train", "train-tonal-btn", "Tonal");
+        document.getElementById('train-vocal-btn').onclick = () => runTraining("/train_vocal", "train-vocal-btn", "Vocal");
+
         async function checkStatus() {
             try {
                 const res = await fetch(API + "/");
@@ -197,177 +376,67 @@
         }
 
         async function fetchHistory() {
-            const list = document.getElementById('history-list');
             try {
                 const res = await fetch(API + "/history");
                 const data = await res.json();
-                list.innerHTML = "";
-                if(!data.length) {
-                    list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4 italic">Aucun test archivé.</p>';
-                    return;
-                }
-                data.reverse().forEach(entry => {
-                    const item = document.createElement('div');
-                    item.className = "history-item p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center shadow-sm mb-2";
-                    item.onclick = () => loadHistoryEntry(entry);
-                    item.innerHTML = `
-                        <div class="flex flex-col">
-                            <span class="text-xs font-bold text-slate-700">${entry.prenom || ''} ${entry.nom || 'Anonyme'}</span>
-                            <span class="text-[8px] text-slate-400 tracking-wider uppercase">Restaurer</span>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            } catch(e) {}
-        }
-
-        function loadHistoryEntry(e) {
-            document.getElementById('prenom').value = e.prenom || "";
-            document.getElementById('nom').value = e.nom || "";
-            document.getElementById('f125').value = e.before_exam_125_Hz || 0;
-            document.getElementById('f250').value = e.before_exam_250_Hz || 0;
-            document.getElementById('f500').value = e.before_exam_500_Hz || 0;
-            document.getElementById('f1k').value = e.before_exam_1000_Hz || 0;
-            document.getElementById('f2k').value = e.before_exam_2000_Hz || 0;
-            document.getElementById('f4k').value = e.before_exam_4000_Hz || 0;
-            document.getElementById('f8k').value = e.before_exam_8000_Hz || 0;
-            tabTonal.click();
-            alert("Patient " + (e.nom || "") + " chargé.");
-        }
-
-        // --- ANALYSE TONALE ---
-        document.getElementById('predict-btn').onclick = async () => {
-            const payload = {
-                prenom: document.getElementById('prenom').value,
-                nom: document.getElementById('nom').value,
-                before_exam_125_Hz: parseFloat(document.getElementById('f125').value) || 0,
-                before_exam_250_Hz: parseFloat(document.getElementById('f250').value) || 0,
-                before_exam_500_Hz: parseFloat(document.getElementById('f500').value) || 0,
-                before_exam_1000_Hz: parseFloat(document.getElementById('f1k').value) || 0,
-                before_exam_2000_Hz: parseFloat(document.getElementById('f2k').value) || 0,
-                before_exam_4000_Hz: parseFloat(document.getElementById('f4k').value) || 0,
-                before_exam_8000_Hz: parseFloat(document.getElementById('f8k').value) || 0
-            };
-
-            try {
-                const res = await fetch(API + "/predict", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ data: [payload] })
-                });
-                const data = await res.json();
-                renderTonalChart(payload, data[0]);
-                fetchHistory();
-            } catch(e) { alert("Erreur API Tonal."); }
-        };
-
-        function renderTonalChart(before, after) {
-            document.getElementById('chart-placeholder').classList.add('hidden');
-            document.getElementById('chart-container').classList.remove('hidden');
-            if(mainChart) mainChart.destroy();
-
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            mainChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['125', '250', '500', '1k', '2k', '4k', '8k'],
-                    datasets: [
-                        { label: 'Sans Appareil', data: [before.before_exam_125_Hz, before.before_exam_250_Hz, before.before_exam_500_Hz, before.before_exam_1000_Hz, before.before_exam_2000_Hz, before.before_exam_4000_Hz, before.before_exam_8000_Hz], borderColor: '#3b82f6', tension: 0.3, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-                        { label: 'Prédit (Gain)', data: [after.after_exam_125_Hz, after.after_exam_250_Hz, after.after_exam_500_Hz, after.after_exam_1000_Hz, after.after_exam_2000_Hz, after.after_exam_4000_Hz, after.after_exam_8000_Hz], borderColor: '#000', tension: 0.3, borderDash: [5,5] }
-                    ]
-                },
-                options: { scales: { y: { reverse: true, min: -10, max: 120 } } }
-            });
-        }
-
-        // --- ANALYSE VOCALE ---
-        document.getElementById('vocal-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const payload = {
-                oreille: document.getElementById('oreille-vocal').value,
-                srt_db: parseFloat(document.getElementById('srt_db').value),
-                score_40db: parseFloat(document.getElementById('s40').value) || 0,
-                score_60db: parseFloat(document.getElementById('s60').value) || 0,
-                score_80db: parseFloat(document.getElementById('s80').value) || 0
-            };
-
-            try {
-                const res = await fetch(API + "/predict_vocal", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                
-                let data = await res.json();
-                console.log("Données reçues de l'API :", data);
-
-                // Extraction robuste du gain
-                let gainValue = 0;
-                if (Array.isArray(data) && data.length > 0) {
-                    const row = data[0];
-                    gainValue = row.true_gain_db ?? row.prediction ?? row[Object.keys(row)[0]] ?? 0;
-                } else {
-                    gainValue = data.true_gain_db ?? data.prediction ?? 0;
-                }
-
-                renderVocalChart(payload, gainValue);
-            } catch(e) { 
-                alert("Erreur lors de la prédiction vocale."); 
-                console.error(e);
+                document.getElementById('history-list').innerHTML = data.reverse().map(e => `
+                    <div onclick='loadH(${JSON.stringify(e)})' class="history-item p-3 bg-white border border-slate-100 rounded-xl text-xs font-bold mb-2">
+                        ${e.prenom || ''} ${e.nom || 'Anonyme'}
+                    </div>
+                `).join('');
+            } catch {
+                document.getElementById('history-list').innerHTML = '<p class="text-xs text-slate-400 italic">Historique indisponible</p>';
             }
-        };
-
-        function renderVocalChart(input, gain) {
-            document.getElementById('chart-placeholder').classList.add('hidden');
-            document.getElementById('chart-container').classList.remove('hidden');
-            if(mainChart) mainChart.destroy();
-
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            mainChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [0, 20, 40, 60, 80, 100],
-                    datasets: [{
-                        label: 'Compréhension Initiale (%)',
-                        data: [null, null, input.score_40db, input.score_60db, input.score_80db, null],
-                        borderColor: '#a855f7',
-                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: { title: { display: true, text: 'Intensité (dB)' } },
-                        y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } }
-                    }
-                }
-            });
-
-            // Mise à jour du badge de résultat
-            const badge = document.getElementById('result-badge');
-            badge.classList.remove('hidden');
-            badge.className = "mt-6 p-6 rounded-2xl border-2 bg-purple-50 border-purple-200 text-purple-700 font-bold text-center block";
-            badge.innerHTML = `
-                <div class="text-sm uppercase tracking-widest opacity-70">Gain Prothétique Prédit</div>
-                <div class="text-4xl font-black mt-1">${Number(gain).toFixed(1)} <span class="text-xl font-medium">dB</span></div>
-            `;
         }
 
-        // --- ENTRAÎNEMENT ---
-        document.getElementById('train-btn').onclick = async () => {
-            if(!confirm("Lancer le ré-entraînement du modèle ?")) return;
-            const btn = document.getElementById('train-btn');
-            btn.innerText = "ENTRAINEMENT...";
-            try {
-                const res = await fetch(API + "/train", { method: 'POST' });
-                const data = await res.json();
-                alert(data.message);
-            } catch(e) { alert("Erreur entraînement."); }
-            finally { btn.innerText = "RÉ-ENTRAÎNER"; }
+        window.loadH = (e) => {
+            document.getElementById('prenom').value = e.prenom || "";
+            document.getElementById('nom').value    = e.nom    || "";
+            document.getElementById('f125').value   = e.before_exam_125_Hz;
+            document.getElementById('f250').value   = e.before_exam_250_Hz;
+            document.getElementById('f500').value   = e.before_exam_500_Hz;
+            document.getElementById('f1k').value    = e.before_exam_1000_Hz;
+            document.getElementById('f2k').value    = e.before_exam_2000_Hz;
+            document.getElementById('f4k').value    = e.before_exam_4000_Hz;
+            document.getElementById('f8k').value    = e.before_exam_8000_Hz;
+            switchTab('tonal');
         };
 
         checkStatus();
+        // --- SCÉNARIOS POUR LA PRÉSENTATION ---
+const SCENARIOS = {
+    excellent: {
+        srt: 15,
+        scores: [0, 2, 4, 6, 10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 92, 96, 100, 100, 100, 100]
+    },
+    satisfaisant: {
+        srt: 30,
+        scores: [0, 0, 5, 10, 10, 15, 20, 25, 25, 30, 32, 45, 50, 50, 60, 43, 35, 67, 45, 68, 80]
+    },
+    insuffisant: {
+        srt: 45,
+        scores: [0, 0, 0, 0, 5, 10, 10, 15, 20, 25, 25, 30, 32, 45, 50, 50, 60, 43, 35, 67, 45]
+    }
+}
+
+document.getElementById('vocal-profile-scaler').onchange = (e) => {
+    const profile = SCENARIOS[e.target.value];
+    if (!profile) return;
+
+    // Charger le SRT
+    document.getElementById('srt_db').value = profile.srt;
+
+    // Charger les 21 scores
+    LEVELS.forEach((db, index) => {
+        const input = document.getElementById(`v${db}`);
+        if (input) {
+            input.value = profile.scores[index];
+            // Petit effet visuel de flash pour montrer que ça a chargé
+            input.classList.add('bg-purple-50');
+            setTimeout(() => input.classList.remove('bg-purple-50'), 500);
+        }
+    });
+}
     </script>
 </body>
 </html>
