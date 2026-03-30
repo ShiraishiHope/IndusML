@@ -121,6 +121,7 @@ def train_model(
             "device": device_name,
         })
 
+
     model = create_model(
         input_shape=input_shape,
         units=units,
@@ -157,6 +158,13 @@ def train_model(
             ):
                 mlflow.log_metric("val_loss", val_loss, step=epoch_idx)
                 mlflow.log_metric("val_mae", val_mae, step=epoch_idx)
+
+    if mlflow.active_run():
+        signature = infer_signature(
+            X_train_cnn,
+            model.predict(X_train_cnn[:5])
+        )
+        mlflow.tensorflow.log_model(model, "model", signature=signature)
 
     return model
 
