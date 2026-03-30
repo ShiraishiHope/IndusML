@@ -49,6 +49,9 @@
         .interp-good   { background: #dcfce7; color: #166534; }
         .interp-medium { background: #fef9c3; color: #854d0e; }
         .interp-poor   { background: #fee2e2; color: #991b1b; }
+        
+        .preset-btn { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 12px; border-radius: 6px; border: 1px solid #e2e8f0; color: #64748b; transition: all 0.2s; }
+        .preset-btn:hover { background-color: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -72,9 +75,16 @@
 
             <div id="panel-tonal" class="space-y-6">
                 <section class="glass rounded-3xl shadow-sm border border-slate-200 p-8">
-                    <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <span class="p-2 bg-blue-100 text-blue-600 rounded-lg text-xs font-black">T</span> Mesures Tonales
-                    </h2>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span class="p-2 bg-blue-100 text-blue-600 rounded-lg text-xs font-black">T</span> Mesures Tonales
+                        </h2>
+                        <div class="flex gap-2">
+                            <button onclick="loadTonalPreset(0)" class="preset-btn">Cas 1 (Léger)</button>
+                            <button onclick="loadTonalPreset(1)" class="preset-btn">Cas 2 (Moyen)</button>
+                            <button onclick="loadTonalPreset(2)" class="preset-btn">Cas 3 (Sévère)</button>
+                        </div>
+                    </div>
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <input type="text" id="prenom" placeholder="Prénom" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
@@ -100,9 +110,16 @@
 
             <div id="panel-vocal" class="hidden space-y-6">
                 <section class="glass rounded-3xl shadow-sm border border-slate-200 p-6">
-                    <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
-                        <span class="p-2 bg-purple-100 text-purple-600 rounded-lg text-xs font-black">V</span> Mesures Vocales
-                    </h2>
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span class="p-2 bg-purple-100 text-purple-600 rounded-lg text-xs font-black">V</span> Mesures Vocales
+                        </h2>
+                        <div class="flex gap-2">
+                            <button onclick="loadVocalPreset(0)" class="preset-btn">Cas 1</button>
+                            <button onclick="loadVocalPreset(1)" class="preset-btn">Cas 2</button>
+                            <button onclick="loadVocalPreset(2)" class="preset-btn">Cas 3</button>
+                        </div>
+                    </div>
                     <form id="vocal-form" class="space-y-5">
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Seuil SRT mesuré (dB)</label>
@@ -205,6 +222,42 @@
         let vocalChart = null;
         let hasTonal   = false;
         let hasVocal   = false;
+
+        // --- DONNÉES DE TEST (PRESETS) ---
+        const tonalPresets = [
+            { prenom: "Jean", nom: "Léger", f125: 15, f250: 15, f500: 20, f1k: 30, f2k: 45, f4k: 60, f8k: 70 },
+            { prenom: "Marie", nom: "Moyen", f125: 40, f250: 40, f500: 45, f1k: 50, f2k: 55, f4k: 60, f8k: 65 },
+            { prenom: "Paul", nom: "Sévère", f125: 70, f250: 75, f500: 80, f1k: 85, f2k: 90, f4k: 95, f8k: 100 }
+        ];
+
+        // Scores pour les 21 niveaux (0 à 100 dB par pas de 5 dB)
+        const vocalPresets = [
+            { srt: 10, scores: [0,0,0,0,0,0,0,10,40,70,90,100,100,100,100,100,100,100,100,100,100] }, // Léger
+            { srt: 20, scores: [0,0,0,0,0,0,0,0,0,0,0,10,40,70,90,100,100,100,100,100,100] },         // Moyen
+            { srt: 30, scores: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,40,70,90,100,100] }                  // Sévère
+        ];
+
+        function loadTonalPreset(index) {
+            const p = tonalPresets[index];
+            document.getElementById('prenom').value = p.prenom;
+            document.getElementById('nom').value = p.nom;
+            document.getElementById('f125').value = p.f125;
+            document.getElementById('f250').value = p.f250;
+            document.getElementById('f500').value = p.f500;
+            document.getElementById('f1k').value = p.f1k;
+            document.getElementById('f2k').value = p.f2k;
+            document.getElementById('f4k').value = p.f4k;
+            document.getElementById('f8k').value = p.f8k;
+        }
+
+        function loadVocalPreset(index) {
+            const p = vocalPresets[index];
+            document.getElementById('srt_db').value = p.srt;
+            p.scores.forEach((score, i) => {
+                document.getElementById(`v${LEVELS[i]}`).value = score;
+            });
+        }
+        // ---------------------------------
 
         // Génération inputs vocaux
         const vocalGrid = document.getElementById('vocal-inputs');
