@@ -1,6 +1,9 @@
+ipython>=8.10
+jupyterlab>=3.0
+notebook
 kedro~=1.2.0
-kedro-datasets[pandas] 
+kedro-datasets[pandas,tensorflow]
 mlflow
+tensorflow-cpu;
+tensorflow-metal; sys_platform == "darwin"
 optuna
-tensorflow==2.15.0;
-tensorflow-metal==2.15.0; sys_platform == "darwin" and platform_machine == "arm64"

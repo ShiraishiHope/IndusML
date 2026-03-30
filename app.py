@@ -9,73 +9,131 @@ from kedro.framework.startup import bootstrap_project
 from kedro.framework.session import KedroSession
 
 app = Flask(__name__)
-CORS(app)  # Autorise le frontend du Canvas à communiquer avec l'API
+CORS(app)
 
 # Initialisation du projet Kedro
 project_path = Path.cwd()
 bootstrap_project(project_path)
 
-# Chemins des fichiers
+# Chemins des fichiers - TONAL
 HISTORY_FILE = "data/01_raw/history.csv"
 INPUT_FILE = "data/01_raw/inference_input.csv"
 
-# 1. Route pour servir l'interface graphique
+# Chemins des fichiers - VOCAL (Ajoutés)
+VOCAL_HISTORY_FILE = "data/01_raw/vocal_history.csv"
+VOCAL_INPUT_FILE = "data/01_raw/vocal_inference_input.csv"
+VOCAL_OUTPUT_FILE = "data/07_model_output/vocal_predictions.csv" # À vérifier selon ton catalog.yml
+
 @app.route("/", methods=["GET"])
 @app.route("/interface", methods=["GET"])
 def index():
     return send_file("index.html")
 
-# 2. Route de prédiction (POST /predict)
+# --- PARTIE TONALE ---
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        data = request.get_json()
+        content = request.get_json()
+        # Gestion du format de données (direct ou enveloppé)
+        data = content['data'][0] if 'data' in content else content
+        
+        # On crée le DataFrame avec les nouvelles colonnes d'identité
         df_input = pd.DataFrame([data])
         
-        # Sauvegarde pour l'inférence immédiate (écrase le précédent)
-        df_input.to_csv(INPUT_FILE, index=False)
+        # Sauvegarde pour Kedro (sans Nom/Prénom pour ne pas perturber le modèle)
+        cols_model = [c for c in df_input.columns if "before" in c]
+        df_input[cols_model].to_csv(INPUT_FILE, index=False)
         
-        # Sauvegarde dans l'historique global (ajoute à la suite - Consigne TP)
+        # Sauvegarde dans l'historique global (AVEC Nom/Prénom)
         if not os.path.isfile(HISTORY_FILE):
             df_input.to_csv(HISTORY_FILE, index=False)
         else:
             df_input.to_csv(HISTORY_FILE, mode='a', header=False, index=False)
         
-        # Exécution du pipeline d'inférence Kedro
         with KedroSession.create(project_path=project_path) as session:
             session.run(pipeline_name="inference")
             
         output = pd.read_csv('data/07_model_output/predictions.csv')
         return output.to_json(orient='records') 
-    
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# 3. Route pour récupérer l'historique (GET /history)
+    
+    
 @app.route("/history", methods=["GET"])
 def get_history():
     try:
         if os.path.exists(HISTORY_FILE):
             df = pd.read_csv(HISTORY_FILE)
-            # On retourne les 10 derniers tests pour ne pas charger trop de données
             return df.tail(10).to_json(orient='records')
         return jsonify([])
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 4. Route d'entraînement (POST /train)
 @app.route("/train", methods=["POST"])
 def train():
     try:
         with KedroSession.create(project_path=project_path) as session:
-            session.run(pipeline_name="__default__")
-        return jsonify({"message": "Ré-entraînement du modèle terminé avec succès"})
+            session.run(pipeline_name="train") # Changé de __default__ à train pour être explicite
+        return jsonify({"message": "Ré-entraînement du modèle tonal terminé"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# --- PARTIE VOCALE (NOUVEAU) ---
+
+@app.route("/predict_vocal", methods=["POST"])
+def predict_vocal():
+    try:
+        data = request.get_json()
+        # On prépare le DataFrame avec les colonnes attendues par ton pipeline Kedro vocal
+        # Assure-toi que les noms correspondent à ton fichier data_processing_vocal
+        df_input = pd.DataFrame([{
+            "oreille": data.get("oreille"),
+            "srt_db": data.get("srt_db"),
+            "score_40db": data.get("score_40db"),
+            "score_60db": data.get("score_60db"),
+            "score_80db": data.get("score_80db")
+        }])
+        
+        # Sauvegarde pour l'inférence Kedro
+        df_input.to_csv(VOCAL_INPUT_FILE, index=False)
+        
+        # Historique vocal
+        if not os.path.isfile(VOCAL_HISTORY_FILE):
+            df_input.to_csv(VOCAL_HISTORY_FILE, index=False)
+        else:
+            df_input.to_csv(VOCAL_HISTORY_FILE, mode='a', header=False, index=False)
+        
+        # Exécution du pipeline d'inférence VOCAL
+        with KedroSession.create(project_path=project_path) as session:
+            session.run(pipeline_name="inference_vocal")
+            
+        # Lecture du résultat (le chemin doit correspondre à ton catalogue Kedro)
+        if os.path.exists(VOCAL_OUTPUT_FILE):
+            output = pd.read_csv(VOCAL_OUTPUT_FILE)
+            return output.to_json(orient='records')
+        else:
+            # Fallback si Kedro n'a pas encore créé le fichier
+            return jsonify({"prediction": 0.0, "status": "Fichier de sortie absent"})
+
+    except Exception as e:
+        print(f"Erreur Vocal: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/train_vocal", methods=["POST"])
+def train_vocal():
+    try:
+        with KedroSession.create(project_path=project_path) as session:
+            session.run(pipeline_name="train_vocal")
+        return jsonify({"message": "Ré-entraînement du modèle vocal terminé"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 def open_browser():
     webbrowser.open_new("http://127.0.0.1:5000/")
 
 if __name__ == '__main__':
     Timer(1, open_browser).start()
-    app.run(host='0.0.0.0', port=5000) 
+    app.run(host='0.0.0.0', port=5000, debug=True) # debug=True aide à voir les erreurs

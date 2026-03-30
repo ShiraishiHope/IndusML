@@ -58,6 +58,12 @@ class TrainResponse(BaseModel):
     status: str
     message: str
 
+class VocalInput(BaseModel):
+    oreille: str
+    srt_db: float
+    score_40db: float
+    score_60db: float
+    score_80db: float
 
 def load_model():
     """Charge le modèle entraîné."""
@@ -207,6 +213,31 @@ async def predict(request: PredictionRequest):
         valid_rows=len(valid_data),
         invalid_rows=invalid_rows
     )
+
+@app.post("/predict_vocal")
+async def predict_vocal(request: VocalInput):
+    # Chemin vers ton modèle généré par le pipeline Kedro vocal
+    VOCAL_MODEL_PATH = "data/06_models/vocal_model.keras" 
+    
+    if not os.path.exists(VOCAL_MODEL_PATH):
+        raise HTTPException(status_code=503, detail="Modèle vocal non disponible")
+    
+    model = tf.keras.models.load_model(VOCAL_MODEL_PATH)
+    
+    # Encodage : Droite = 0, Gauche = 1
+    oreille_val = 0 if request.oreille.lower() == "droite" else 1
+    
+    # Préparation du vecteur (Oreille + 4 mesures)
+    features = np.array([[oreille_val, request.srt_db, request.score_40db, request.score_60db, request.score_80db]], dtype=np.float32)
+    X = features.reshape((1, 5, 1)) # Shape pour CNN
+    
+    prediction = model.predict(X)
+    return {"prediction": float(prediction[0][0])}
+
+@app.post("/train_vocal")
+async def train_vocal():
+    subprocess.run(["kedro", "run", "--pipeline", "train_vocal"], check=True)
+    return {"message": "Pipeline vocal exécuté"}
 
 
 if __name__ == "__main__":
