@@ -95,17 +95,14 @@ def predict_vocal():
         content = request.get_json()
 
         # Payload attendu depuis le front :
-        # { "input": [[score_0dB, srt], [score_5dB, srt], ..., [score_100dB, srt]] }
-        input_matrix = content["input"]  # liste (21, 2)
+        input_matrix = content["input"]  
 
         if len(input_matrix) != 21:
             return jsonify({"error": f"21 niveaux attendus, {len(input_matrix)} reçus"}), 400
 
         # ── Sauvegarde CSV pour Kedro ──────────────────────────────────
-        # On déplie la matrice en colonnes nommées pour le catalog Kedro
-        # Colonnes : score_0, score_5, ..., score_100, true_srt50
         scores = [row[0] for row in input_matrix]
-        srt50  = input_matrix[0][1]  # même valeur sur toutes les lignes
+        srt50  = input_matrix[0][1]  
 
         row_dict = {f"score_{lvl}": scores[i] for i, lvl in enumerate(LEVELS)}
         row_dict["true_srt50"] = srt50
@@ -129,14 +126,11 @@ def predict_vocal():
 
         output_df = pd.read_csv(VOCAL_OUTPUT_FILE)
 
-        # Le CSV de sortie doit contenir 21 colonnes pred_0, pred_5, ..., pred_100
-        # (à adapter selon le nom que tu donnes dans ton node predict_vocal)
         pred_cols = [f"pred_{lvl}" for lvl in LEVELS]
 
         if all(c in output_df.columns for c in pred_cols):
             predicted_scores = output_df[pred_cols].iloc[0].tolist()
         else:
-            # Fallback : on prend les 21 premières colonnes numériques dans l'ordre
             predicted_scores = output_df.iloc[0].tolist()
 
         return jsonify({"predicted_scores": predicted_scores})

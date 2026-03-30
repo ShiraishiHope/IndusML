@@ -9,7 +9,6 @@ import mlflow.tensorflow
 import platform
 import logging
 
-# Import indispensable pour Keras 3
 from keras.saving import register_keras_serializable
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 @register_keras_serializable(package="CustomMetrics")
 class WithinMarginAccuracy(tf.keras.metrics.Metric):
     def __init__(self, margin=5.0, name='train_accuracy', **kwargs):
-        # On s'assure que margin est bien passé dans kwargs pour la sérialisation
         super().__init__(name=name, **kwargs)
         self.margin = margin
         self.total_within = self.add_weight(name='total_within', initializer='zeros')
@@ -38,7 +36,6 @@ class WithinMarginAccuracy(tf.keras.metrics.Metric):
         self.total_within.assign(0.0)
         self.total_count.assign(0.0)
 
-    # Indispensable pour que Keras puisse recharger les paramètres (margin)
     def get_config(self):
         config = super().get_config()
         config.update({"margin": self.margin})
@@ -75,12 +72,9 @@ def create_vocal_model(input_shape=(21, 2), learning_rate=1e-3, units=128, dropo
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss="mse",
-        # On utilise notre classe enregistrée
         metrics=['mae', WithinMarginAccuracy(margin=5.0)]
     )
     return model
-
-# ... (le reste de ton code train_model et evaluate_model est correct)
 
 def train_model(
     X_train: np.ndarray,
@@ -93,9 +87,6 @@ def train_model(
 ) -> tf.keras.Model:
     
     configure_device()
-
-    # Vérification de la dimension d'entrée
-    # X_train doit être (nb_patients, 21, 2)
     in_shape = (X_train.shape[1], X_train.shape[2])
 
     model = create_vocal_model(
@@ -118,7 +109,6 @@ def train_model(
         verbose=1
     )
 
-    # Enregistrement manuel dans MLflow
     if mlflow.active_run():
         mlflow.log_params({
             "units": units,
@@ -154,7 +144,6 @@ def evaluate_model(
     error_margin: float = 5.0
 ) -> Dict[str, Any]:
     
-    # X_test possède déjà les 2 canaux grâce au node processing
     y_pred = model.predict(X_test)
     
     mse = mean_squared_error(y_test, y_pred)
