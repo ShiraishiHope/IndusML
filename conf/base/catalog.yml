@@ -5,7 +5,7 @@ raw_audiograms:
 
 raw_vocal_data:
   type: pandas.CSVDataset
-  filepath: vocal_dataset.csv
+  filepath: data/01_raw/vocal_dataset.csv
   load_args:
     sep: ","
 
