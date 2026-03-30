@@ -22,8 +22,8 @@ training:
   epochs: 50
   batch_size: 32
   learning_rate: 0.001
-  units: 128
-  dropout_rate: 0.2
+  units: 584
+  dropout_rate: 0.16085818019589387
   error_margin: 5.0
 
 optuna:
@@ -41,7 +41,7 @@ optuna:
 
 training_vocal:
     units: 256              
-    learning_rate: 0.0005   
+    learning_rate: 0.00046377827848532874   
     epochs: 100           
     batch_size: 32
     dropout_rate: 0.2
