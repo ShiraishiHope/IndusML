@@ -82,8 +82,7 @@
                         Journal des patients
                         <button onclick="fetchHistory()" class="text-blue-500 text-[10px] hover:underline font-black">ACTUALISER</button>
                     </h3>
-                    <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                        </div>
+                    <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
                 </section>
             </div>
 
@@ -153,7 +152,7 @@
         const API = "http://127.0.0.1:5000";
         let mainChart = null;
 
-        // --- NAVIGATION ONGLETS ---
+        // --- NAVIGATION ---
         const tabTonal = document.getElementById('tab-tonal');
         const tabVocal = document.getElementById('tab-vocal');
         const panelTonal = document.getElementById('panel-tonal');
@@ -184,7 +183,7 @@
             document.getElementById('result-badge').classList.add('hidden');
         }
 
-        // --- STATUT API ---
+        // --- STATUT API & HISTORIQUE ---
         async function checkStatus() {
             try {
                 const res = await fetch(API + "/");
@@ -197,29 +196,25 @@
             } catch(e) {}
         }
 
-        // --- HISTORIQUE & CHARGEMENT ---
         async function fetchHistory() {
             const list = document.getElementById('history-list');
             try {
                 const res = await fetch(API + "/history");
                 const data = await res.json();
                 list.innerHTML = "";
-                
                 if(!data.length) {
                     list.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-4 italic">Aucun test archivé.</p>';
                     return;
                 }
-
                 data.reverse().forEach(entry => {
                     const item = document.createElement('div');
                     item.className = "history-item p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center shadow-sm mb-2";
                     item.onclick = () => loadHistoryEntry(entry);
                     item.innerHTML = `
                         <div class="flex flex-col">
-                            <span class="text-xs font-bold text-slate-700">${entry.prenom || ''} ${entry.nom || 'Patient Anonyme'}</span>
-                            <span class="text-[8px] text-slate-400">Cliquez pour restaurer</span>
+                            <span class="text-xs font-bold text-slate-700">${entry.prenom || ''} ${entry.nom || 'Anonyme'}</span>
+                            <span class="text-[8px] text-slate-400 tracking-wider uppercase">Restaurer</span>
                         </div>
-                        <span class="text-[8px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold uppercase">RESTAURER</span>
                     `;
                     list.appendChild(item);
                 });
@@ -227,11 +222,8 @@
         }
 
         function loadHistoryEntry(e) {
-            // Chargement de l'identité
             document.getElementById('prenom').value = e.prenom || "";
             document.getElementById('nom').value = e.nom || "";
-            
-            // Chargement des fréquences
             document.getElementById('f125').value = e.before_exam_125_Hz || 0;
             document.getElementById('f250').value = e.before_exam_250_Hz || 0;
             document.getElementById('f500').value = e.before_exam_500_Hz || 0;
@@ -239,10 +231,8 @@
             document.getElementById('f2k').value = e.before_exam_2000_Hz || 0;
             document.getElementById('f4k').value = e.before_exam_4000_Hz || 0;
             document.getElementById('f8k').value = e.before_exam_8000_Hz || 0;
-            
-            // Notification visuelle sur l'onglet
-            tabTonal.click(); // Switch automatique vers Tonal
-            alert("Données de " + (e.nom || "l'archive") + " chargées.");
+            tabTonal.click();
+            alert("Patient " + (e.nom || "") + " chargé.");
         }
 
         // --- ANALYSE TONALE ---
@@ -283,7 +273,7 @@
                     labels: ['125', '250', '500', '1k', '2k', '4k', '8k'],
                     datasets: [
                         { label: 'Sans Appareil', data: [before.before_exam_125_Hz, before.before_exam_250_Hz, before.before_exam_500_Hz, before.before_exam_1000_Hz, before.before_exam_2000_Hz, before.before_exam_4000_Hz, before.before_exam_8000_Hz], borderColor: '#3b82f6', tension: 0.3, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-                        { label: 'Prédit (Gain)', data: [after.after_exam_125_Hz, after.after_exam_250_Hz, after.after_exam_500_Hz, after.after_exam_1000_Hz, after.after_exam_2000_Hz, after.after_exam_4000_Hz, after.after_exam_8000_Hz], borderColor: '#000000', tension: 0.3, borderDash: [5,5] }
+                        { label: 'Prédit (Gain)', data: [after.after_exam_125_Hz, after.after_exam_250_Hz, after.after_exam_500_Hz, after.after_exam_1000_Hz, after.after_exam_2000_Hz, after.after_exam_4000_Hz, after.after_exam_8000_Hz], borderColor: '#000', tension: 0.3, borderDash: [5,5] }
                     ]
                 },
                 options: { scales: { y: { reverse: true, min: -10, max: 120 } } }
@@ -307,13 +297,27 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                const predValue = Array.isArray(data) ? data[0].prediction : (data.prediction || 0);
-                renderVocalChart(payload, predValue);
-            } catch(e) { alert("Erreur API Vocal."); }
+                
+                let data = await res.json();
+                console.log("Données reçues de l'API :", data);
+
+                // Extraction robuste du gain
+                let gainValue = 0;
+                if (Array.isArray(data) && data.length > 0) {
+                    const row = data[0];
+                    gainValue = row.true_gain_db ?? row.prediction ?? row[Object.keys(row)[0]] ?? 0;
+                } else {
+                    gainValue = data.true_gain_db ?? data.prediction ?? 0;
+                }
+
+                renderVocalChart(payload, gainValue);
+            } catch(e) { 
+                alert("Erreur lors de la prédiction vocale."); 
+                console.error(e);
+            }
         };
 
-        function renderVocalChart(input, prediction) {
+        function renderVocalChart(input, gain) {
             document.getElementById('chart-placeholder').classList.add('hidden');
             document.getElementById('chart-container').classList.remove('hidden');
             if(mainChart) mainChart.destroy();
@@ -324,32 +328,43 @@
                 data: {
                     labels: [0, 20, 40, 60, 80, 100],
                     datasets: [{
-                        label: 'Compréhension (%)',
-                        data: [0, null, input.score_40db, input.score_60db, input.score_80db, 100],
+                        label: 'Compréhension Initiale (%)',
+                        data: [null, null, input.score_40db, input.score_60db, input.score_80db, null],
                         borderColor: '#a855f7',
-                        tension: 0.4,
-                        fill: true,
                         backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                        pointRadius: 6
+                        fill: true,
+                        tension: 0.4
                     }]
                 },
-                options: { scales: { y: { min: 0, max: 100 } } }
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Intensité (dB)' } },
+                        y: { min: 0, max: 100, title: { display: true, text: 'Score (%)' } }
+                    }
+                }
             });
 
+            // Mise à jour du badge de résultat
             const badge = document.getElementById('result-badge');
             badge.classList.remove('hidden');
-            badge.className = "mt-6 p-4 rounded-2xl border bg-purple-50 border-purple-200 text-purple-700 font-bold text-center";
-            badge.innerText = `Gain d'intelligibilité prédit : +${prediction.toFixed(2)} %`;
+            badge.className = "mt-6 p-6 rounded-2xl border-2 bg-purple-50 border-purple-200 text-purple-700 font-bold text-center block";
+            badge.innerHTML = `
+                <div class="text-sm uppercase tracking-widest opacity-70">Gain Prothétique Prédit</div>
+                <div class="text-4xl font-black mt-1">${Number(gain).toFixed(1)} <span class="text-xl font-medium">dB</span></div>
+            `;
         }
 
         // --- ENTRAÎNEMENT ---
         document.getElementById('train-btn').onclick = async () => {
             if(!confirm("Lancer le ré-entraînement du modèle ?")) return;
+            const btn = document.getElementById('train-btn');
+            btn.innerText = "ENTRAINEMENT...";
             try {
                 const res = await fetch(API + "/train", { method: 'POST' });
                 const data = await res.json();
                 alert(data.message);
             } catch(e) { alert("Erreur entraînement."); }
+            finally { btn.innerText = "RÉ-ENTRAÎNER"; }
         };
 
         checkStatus();

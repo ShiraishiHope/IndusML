@@ -25,3 +25,5 @@ EXPOSE 5000
 # Commande pour lancer l'API au démarrage du conteneur
 # Note : On force l'host à 0.0.0.0 pour qu'il soit accessible hors du conteneur
 CMD ["python", "app.py"]
+
+RUN mkdir -p data/01_raw data/07_model_output

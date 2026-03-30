@@ -16,7 +16,7 @@ data/*
 !data/01_raw/
 
 # 3. Ignore everything inside "01_raw" (so you don't track other data files)
-data/01_raw/*
+
 
 # 4. Finally, keep your specific scripts
 !data/01_raw/audiogram_generator.py
