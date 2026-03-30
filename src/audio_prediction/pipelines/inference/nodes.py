@@ -67,7 +67,6 @@ def predict(
     if X.empty:
         return pd.DataFrame(columns=output_columns)
     
-    # Reshape pour Conv1D: (samples, 7, 1)
     X_array = X.values.astype(np.float32)
     X_cnn = X_array.reshape((X_array.shape[0], X_array.shape[1], 1))
     

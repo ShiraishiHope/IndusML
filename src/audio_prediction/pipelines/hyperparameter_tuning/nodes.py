@@ -80,7 +80,6 @@ def optimize_hyperparameters(
 
                 best_val_loss = min(history.history["val_loss"])
 
-                # Log the accuracy too if it exists in history
                 best_accuracy = None
                 if "val_accuracy" in history.history:
                     best_accuracy = max(history.history["val_accuracy"])

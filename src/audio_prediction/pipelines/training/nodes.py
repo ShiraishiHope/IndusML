@@ -26,7 +26,7 @@ def configure_device() -> str:
     gpus = tf.config.list_physical_devices('GPU')
     print(tf.config.list_physical_devices()) 
     if gpus:
-        # GPU found — could be NVIDIA CUDA on PC or Metal on Mac
+
         try:
             for gpu in gpus:
                 tf.config.experimental.set_memory_growth(gpu, True)
@@ -108,7 +108,7 @@ def train_model(
     X_train_cnn, y_train_cnn = prepare_data_for_cnn(X_train, y_train)
     input_shape = (X_train_cnn.shape[1], 1)
     device_name = configure_device()
-    # Log params to an externally-managed run if one exists
+
     if mlflow.active_run():
         mlflow.log_params({
             "units": units,
@@ -143,7 +143,6 @@ def train_model(
         verbose=1
     )
 
-    # Log training metrics
     if mlflow.active_run():
         for epoch_idx, (loss, mae, acc) in enumerate(
             zip(history.history['loss'], history.history['mae'], history.history['train_accuracy'])
@@ -172,15 +171,13 @@ def evaluate_model(
     
     y_pred = model.predict(X_test_cnn)
     
-    # Classic metrics (kept for reference / MLflow logging)
     mse = mean_squared_error(y_test_array, y_pred)
     mae = mean_absolute_error(y_test_array, y_pred)
     r2 = r2_score(y_test_array, y_pred)
 
-    # ---- New: accuracy based on absolute error margin ----
     abs_errors = np.abs(y_test_array - y_pred)
-    within_margin = abs_errors <= error_margin          # boolean matrix
-    overall_accuracy = float(np.mean(within_margin))    # proportion of ALL values within margin
+    within_margin = abs_errors <= error_margin         
+    overall_accuracy = float(np.mean(within_margin))    
     
     per_frequency_metrics = {}
     columns = y_test.columns.tolist()
