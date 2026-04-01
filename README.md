@@ -65,13 +65,11 @@ kedro run --pipeline inference_vocal
 
 ## Lancer l'API
 
-Démarrer le serveur FastAPI en local :
+Démarrer le serveur Flask en local :
 
-uvicorn api:app --host 0.0.0.0 --port 8000
+python app.py
 
-Ou directement via Python :
-
-python api.py
+Le chargement des graphs peut prendre du temps en fonction des pcs
 
 ## Points d'accès de l'API :
 
